@@ -11,7 +11,7 @@ Run the following command in the root of your project to start developing with t
 
 ```bash
 kill -9 $(lsof -ti:9090)
-dx serve --platform desktop --port 9090 --feature desktop
+dx serve --platform desktop --port 9090 --features desktop
 ```
 
 ## Build
