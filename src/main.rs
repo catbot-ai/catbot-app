@@ -3,6 +3,8 @@ use dioxus::{
     prelude::*,
 };
 
+pub use tray_icon::*;
+
 fn main() {
     dioxus::launch(App);
 
@@ -21,9 +23,11 @@ fn main() {
         &quit_i,
     ]);
 
-    let tray_icon = None;
+    let tray_icon =
+        tray_icon::Icon::from_rgba(include_bytes!("../assets/icon.png").to_vec(), 32, 32)
+            .expect("image parse failed");
 
-    let tray_icon = dioxus::desktop::trayicon::init_tray_icon(tray_menu, tray_icon);
+    let tray_icon = dioxus::desktop::trayicon::init_tray_icon(tray_menu, Some(tray_icon));
     tray_icon.set_title(Some("Hello, World!"));
 }
 
