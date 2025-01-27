@@ -1,7 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use strum_macros::{Display, EnumString};
 
-pub const SOL_JLP_POOL_ID: &str = "3d8ksMPuLpaQAUbuRr74tmovmyFFXgAsC3iE5NhsgvnH";
+#[derive(EnumString, Display, Debug, Clone)]
+pub enum PoolId {
+    #[strum(to_string = "3d8ksMPuLpaQAUbuRr74tmovmyFFXgAsC3iE5NhsgvnH")]
+    #[allow(non_camel_case_types)]
+    SOL_JLP,
+}
+
 pub const RAYDIUM_BASE_API: &str = "https://api-v3.raydium.io";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -80,26 +87,29 @@ pub struct Config {
     pub default_range_point: Vec<f64>,
 }
 
-async fn fetch(url: &str) -> anyhow::Result<PoolInfoResponse> {
+async fn fetch_pool_info(url: &str) -> anyhow::Result<PoolInfoResponse> {
     let json = reqwest::get(url).await?.json::<PoolInfoResponse>().await?;
 
     Ok(json)
 }
 
 #[allow(dead_code)]
-async fn fetch_pool_info_by_id(id: &str) -> anyhow::Result<PoolData> {
-    let pool_info = fetch(format!("{RAYDIUM_BASE_API}/pools/info/ids?ids={id}").as_str()).await;
+pub async fn fetch_pool_info_by_id(id: PoolId) -> anyhow::Result<PoolData> {
+    let pool_info =
+        fetch_pool_info(format!("{RAYDIUM_BASE_API}/pools/info/ids?ids={id}").as_str()).await;
 
     Ok(pool_info?.data[0].clone())
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::ray;
+
     use super::*;
 
     #[tokio::test]
     async fn test_fetch_pool_info_by_id() {
-        let id = SOL_JLP_POOL_ID;
+        let id = ray::PoolId::SOL_JLP;
         let pool_info = fetch_pool_info_by_id(id).await;
 
         // Result
