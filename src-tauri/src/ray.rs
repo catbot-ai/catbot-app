@@ -101,6 +101,11 @@ pub async fn fetch_pool_info_by_id(id: PoolId) -> anyhow::Result<PoolData> {
     Ok(pool_info?.data[0].clone())
 }
 
+#[allow(dead_code)]
+pub fn get_logo_by_mint_address(mint_address: &str) -> String {
+    format!("https://img.raydium.io/icon/{mint_address}.png")
+}
+
 #[cfg(test)]
 mod tests {
     use crate::ray;
@@ -120,5 +125,13 @@ mod tests {
 
         println!("{price:#?}");
         assert!(price > 0.0);
+    }
+
+    #[test]
+    fn test_get_logo_by_mint_address() {
+        let mint_address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+        let logo = get_logo_by_mint_address(mint_address);
+
+        assert_eq!(logo, "https://img.raydium.io/icon/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png")
     }
 }
