@@ -6,16 +6,8 @@ use runner::run_loop;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Manager,
 };
-use wasm_timer::Delay;
-
-use std::{sync::Arc, time::Duration};
-use tauri::async_runtime::Mutex;
-
-struct AppState {
-    price: Arc<Mutex<Option<f64>>>, // Store the price here
-}
+use tokio::sync::watch;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -26,9 +18,6 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState {
-            price: Arc::new(Mutex::new(None)), // Initialize with no price
-        })
         .setup(|app| {
             // Tray and menu setup
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -43,38 +32,30 @@ pub fn run() {
             // Clone values needed in async task before moving them
             let tray_id = tray.id().clone();
             let app_handle = app.handle().clone();
-            let price_state = app.try_state::<AppState>().unwrap().price.clone();
 
-            // Spawn async task with owned values
+            let (price_sender, price_receiver) = watch::channel(None);
+
             tauri::async_runtime::spawn(async move {
-                // Split into two independent clones
-                let run_loop_state = price_state.clone();
-                let tray_update_state = price_state;
+                let mut price_receiver = price_receiver.clone();
 
-                // Price fetching task
-                tauri::async_runtime::spawn(async move {
-                    if let Err(e) = run_loop(run_loop_state).await {
-                        eprintln!("Price fetch error: {}", e);
-                    }
-                });
-
-                println!("Tray icon initialized");
-
-                // Tray update loop
                 loop {
-                    let price = {
-                        let mut guard = tray_update_state.lock().await;
-                        guard.take()
-                    };
+                    // Wait for price changes
+                    price_receiver.changed().await.unwrap();
+                    let price = *price_receiver.borrow_and_update();
 
                     if let Some(price) = price {
                         let _ = app_handle
                             .tray_by_id(&tray_id)
-                            .expect("Tray icon missing")
+                            .expect("Tray missing")
                             .set_title(Some(&format!("${:.2}", price)));
                     }
+                }
+            });
 
-                    Delay::new(Duration::from_secs(5)).await.ok();
+            // Start price fetch loop with sender
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = run_loop(price_sender).await {
+                    eprintln!("Price fetch error: {}", e);
                 }
             });
 
