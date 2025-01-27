@@ -28,6 +28,7 @@ wasm-timer = "0.2.5"
 strum = { version = "0.26", features = ["derive"] }
 strum_macros = "0.26"
 tokio = { version = "1.43.0", features = ["sync", "rt-multi-thread"] }
+tauri-plugin-notification = "2.2.1"
 
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["full"] }

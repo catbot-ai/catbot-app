@@ -7,6 +7,7 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
+use tauri_plugin_notification::NotificationExt;
 use tokio::sync::watch;
 
 #[tauri::command]
@@ -18,6 +19,7 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             // Tray and menu setup
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -58,6 +60,13 @@ pub fn run() {
                     eprintln!("Price fetch error: {}", e);
                 }
             });
+
+            let _ = app
+                .notification()
+                .builder()
+                .title("Hello")
+                .body("World! 😎")
+                .show();
 
             Ok(())
         })
