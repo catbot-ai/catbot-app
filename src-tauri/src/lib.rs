@@ -4,6 +4,7 @@ pub mod runner;
 
 use runner::run_loop;
 use tauri::{
+    include_image,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
@@ -46,10 +47,11 @@ pub fn run() {
                     let price = *price_receiver.borrow_and_update();
 
                     if let Some(price) = price {
-                        let _ = app_handle
-                            .tray_by_id(&tray_id)
-                            .expect("Tray missing")
-                            .set_title(Some(&format!("${:.2}", price)));
+                        let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
+                        let _ = tray_icon.set_title(Some(&format!("${:.2}", price)));
+
+                        let icon = include_image!("./icons/32x32-notification.png");
+                        let _ = tray.set_icon(Some(icon));
                     }
                 }
             });
