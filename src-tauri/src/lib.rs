@@ -24,10 +24,24 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .on_menu_event(move |app, event| match event.id.as_ref() {
+            "quit" => {
+                app.exit(0);
+            },
+            "about" => {
+                // TODO
+            },
+            "setting" => {
+                // TODO
+            },
+            _ => {}
+        })
         .setup(|app| {
             // Tray and menu setup
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_i])?;
+            let about_i = MenuItem::with_id(app, "about", "About", true, None::<&str>)?;
+            let setting_i = MenuItem::with_id(app, "setting", "Setting", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_i, &about_i, &setting_i])?;
 
             let tray_icon = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
@@ -35,6 +49,7 @@ pub fn run() {
                 .show_menu_on_left_click(true)
                 .build(app)?;
 
+ 
             // Clone values needed in async task before moving them
             let tray_id = tray_icon.id().clone();
             let app_handle = app.handle().clone();
