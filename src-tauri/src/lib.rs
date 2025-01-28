@@ -56,7 +56,7 @@ pub fn run() {
 
                 loop {
                     // Wait for price changes
-                    price_receiver.changed().await.unwrap();
+                    let _ = price_receiver.changed().await;
                     let price = *price_receiver.borrow_and_update();
 
                     if let Some(price) = price {
