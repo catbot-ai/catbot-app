@@ -1,5 +1,5 @@
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{TrayIconBuilder, TrayIconId},
     App,
 };
@@ -7,9 +7,24 @@ use tauri::{
 use crate::assets::fetch_and_set_icon;
 
 pub fn setup_tray(app: &mut App) -> anyhow::Result<TrayIconId> {
+    // Quit
     let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+
+    // Setting
     let setting_i = MenuItem::with_id(app, "setting", "Setting", true, None::<&str>)?;
-    let about_i = MenuItem::with_id(app, "about", "About", true, None::<&str>)?;
+
+    // About
+    let pkg_info = app.package_info();
+    let config = app.config();
+    let about_metadata = AboutMetadata {
+        name: Some(pkg_info.name.clone()),
+        version: Some(pkg_info.version.to_string()),
+        copyright: config.bundle.copyright.clone(),
+        authors: config.bundle.publisher.clone().map(|p| vec![p]),
+        ..Default::default()
+    };
+
+    // Menu
     let menu = Menu::with_items(
         app,
         &[
@@ -24,7 +39,7 @@ pub fn setup_tray(app: &mut App) -> anyhow::Result<TrayIconId> {
             )?,
             &PredefinedMenuItem::separator(app)?,
             &setting_i,
-            &about_i,
+            &PredefinedMenuItem::about(app, None, Some(about_metadata))?,
             &PredefinedMenuItem::separator(app)?,
             &quit_i,
         ],
