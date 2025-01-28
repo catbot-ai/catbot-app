@@ -3,16 +3,12 @@ pub mod feeder;
 pub mod jup;
 pub mod ray;
 pub mod runner;
+pub mod tray;
 
-use assets::fetch_and_set_icon;
 use runner::run_loop;
-use tauri::{
-    // include_image,
-    menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
-};
 use tauri_plugin_notification::NotificationExt;
 use tokio::sync::watch;
+use tray::setup_tray;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -27,45 +23,23 @@ pub fn run() {
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "quit" => {
                 app.exit(0);
-            },
+            }
             "about" => {
                 // TODO
-            },
+            }
             "setting" => {
                 // TODO
-            },
+            }
             _ => {}
         })
         .setup(|app| {
             // Tray and menu setup
-            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let about_i = MenuItem::with_id(app, "about", "About", true, None::<&str>)?;
-            let setting_i = MenuItem::with_id(app, "setting", "Setting", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_i, &about_i, &setting_i])?;
-
-            let tray_icon = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
-                .menu(&menu)
-                .show_menu_on_left_click(true)
-                .build(app)?;
-
- 
-            // Clone values needed in async task before moving them
-            let tray_id = tray_icon.id().clone();
-            let app_handle = app.handle().clone();
-
-            let (price_sender, price_receiver) = watch::channel(None);
-
-            // Icon
-            tauri::async_runtime::spawn(async move {
-                let _ = fetch_and_set_icon(
-                    "https://img-v1.raydium.io/icon/So11111111111111111111111111111111111111112.png",
-                    &tray_icon,
-                )
-                .await;
-            });
+            let tray_id = setup_tray(app).expect("Tray setup failed");
 
             // Feed
+            let app_handle = app.handle().clone();
+            let (price_sender, price_receiver) = watch::channel(None);
+
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
 
