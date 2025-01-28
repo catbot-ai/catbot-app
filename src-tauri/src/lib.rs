@@ -1,10 +1,12 @@
+pub mod assets;
 pub mod feeder;
 pub mod ray;
 pub mod runner;
 
+use assets::fetch_and_set_icon;
 use runner::run_loop;
 use tauri::{
-    include_image,
+    // include_image,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
@@ -26,18 +28,28 @@ pub fn run() {
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit_i])?;
 
-            let tray = TrayIconBuilder::new()
+            let tray_icon = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .show_menu_on_left_click(true)
                 .build(app)?;
 
             // Clone values needed in async task before moving them
-            let tray_id = tray.id().clone();
+            let tray_id = tray_icon.id().clone();
             let app_handle = app.handle().clone();
 
             let (price_sender, price_receiver) = watch::channel(None);
 
+            // Icon
+            tauri::async_runtime::spawn(async move {
+                let _ = fetch_and_set_icon(
+                    "https://img-v1.raydium.io/icon/So11111111111111111111111111111111111111112.png",
+                    &tray_icon,
+                )
+                .await;
+            });
+
+            // Feed
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
 
@@ -50,8 +62,8 @@ pub fn run() {
                         let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
                         let _ = tray_icon.set_title(Some(&format!("${:.2}", price)));
 
-                        let icon = include_image!("./icons/32x32-notification.png");
-                        let _ = tray.set_icon(Some(icon));
+                        // let icon = include_image!("./icons/32x32-notification.png");
+                        // let _ = tray.set_icon(Some(icon));
                     }
                 }
             });
