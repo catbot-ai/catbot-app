@@ -1,5 +1,6 @@
 pub mod assets;
 pub mod feeder;
+pub mod jup;
 pub mod ray;
 pub mod runner;
 
