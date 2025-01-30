@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use strum::AsRefStr;
 use strum_macros::{Display, EnumString};
 
 // Define the TokenId enum with strum conversions
@@ -14,6 +15,20 @@ pub enum TokenId {
     #[allow(non_camel_case_types)]
     JLP,
     #[strum(to_string = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")]
+    #[allow(non_camel_case_types)]
+    USDC,
+}
+
+#[derive(AsRefStr, EnumString, Display, Debug, Clone)]
+#[strum(serialize_all = "UPPERCASE")]
+pub enum TokenName {
+    #[strum(serialize = "SOL")]
+    #[allow(non_camel_case_types)]
+    SOL,
+    #[strum(serialize = "JLP")]
+    #[allow(non_camel_case_types)]
+    JLP,
+    #[strum(serialize = "USDC")]
     #[allow(non_camel_case_types)]
     USDC,
 }

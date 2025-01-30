@@ -102,13 +102,13 @@ pub async fn fetch_pool_info_by_id(id: PoolId) -> anyhow::Result<PoolData> {
 }
 
 #[allow(dead_code)]
-pub fn get_logo_by_mint_address(mint_address: &str) -> String {
+pub fn get_token_logo_url_by_mint_address(mint_address: &str) -> String {
     format!("https://img.raydium.io/icon/{mint_address}.png")
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::ray;
+    use crate::{jup::TokenId, ray};
 
     use super::*;
 
@@ -129,9 +129,11 @@ mod tests {
 
     #[test]
     fn test_get_logo_by_mint_address() {
-        let mint_address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-        let logo = get_logo_by_mint_address(mint_address);
+        let logo = get_token_logo_url_by_mint_address(&TokenId::USDC.to_string());
 
-        assert_eq!(logo, "https://img.raydium.io/icon/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png")
+        assert_eq!(
+            logo,
+            "https://img.raydium.io/icon/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
+        )
     }
 }

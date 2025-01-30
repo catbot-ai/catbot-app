@@ -1,10 +1,19 @@
 use tauri::{
-    menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
+    include_image,
+    menu::{AboutMetadata, IconMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{TrayIconBuilder, TrayIconId},
     App,
 };
 
-use crate::assets::fetch_and_set_icon;
+use crate::{
+    assets::fetch_and_set_icon,
+    jup::{TokenId, TokenName},
+};
+
+pub struct TokenInfo {
+    id: TokenId,
+    name: TokenName,
+}
 
 pub fn setup_tray(app: &mut App) -> anyhow::Result<TrayIconId> {
     // Quit
@@ -24,6 +33,14 @@ pub fn setup_tray(app: &mut App) -> anyhow::Result<TrayIconId> {
         ..Default::default()
     };
 
+    // TODO: load from json
+    // icons
+    let icon = include_image!("./icons/JLP.png");
+    let token = TokenInfo {
+        id: TokenId::JLP,
+        name: TokenName::JLP,
+    };
+
     // Menu
     let menu = Menu::with_items(
         app,
@@ -35,6 +52,14 @@ pub fn setup_tray(app: &mut App) -> anyhow::Result<TrayIconId> {
                 &[
                     &PredefinedMenuItem::close_window(app, None)?,
                     &MenuItem::new(app, "Hello", true, None::<&str>)?,
+                    &IconMenuItem::with_id(
+                        app,
+                        token.id,
+                        token.name,
+                        true,
+                        Some(icon),
+                        None::<&str>,
+                    )?,
                 ],
             )?,
             &PredefinedMenuItem::separator(app)?,
