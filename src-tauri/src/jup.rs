@@ -6,7 +6,7 @@ use strum::AsRefStr;
 use strum_macros::{Display, EnumString};
 
 // Define the TokenId enum with strum conversions
-#[derive(EnumString, Display, Debug, Copy, Clone)]
+#[derive(EnumString, Display, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TokenId {
     #[strum(to_string = "So11111111111111111111111111111111111111112")]
     #[allow(non_camel_case_types)]
@@ -19,7 +19,7 @@ pub enum TokenId {
     USDC,
 }
 
-#[derive(Default, AsRefStr, EnumString, Display, Debug, Copy, Clone)]
+#[derive(Default, AsRefStr, EnumString, Display, Debug, Copy, Clone, Eq, PartialEq)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum TokenSymbol {
     #[strum(serialize = "SOL")]

@@ -45,6 +45,13 @@ pub fn run() {
                     // TODO
                 }
                 "So11111111111111111111111111111111111111112" => {
+                    let state = app_handle.state::<AppState>();
+                    println!("{:?}", *state.selected_token.lock().unwrap());
+                    if *state.selected_token.lock().unwrap() == TokenSymbol::SOL {
+                        return;
+                    }
+                    *state.selected_token.lock().unwrap() = TokenSymbol::SOL;
+
                     let icon = include_image!("./icons/SOL.png");
                     let state = app_handle.state::<AppState>();
                     let guard = state.token_sender.lock().unwrap();
@@ -61,6 +68,13 @@ pub fn run() {
                         .expect("Failed to set tray title");
                 }
                 "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4" => {
+                    let state = app_handle.state::<AppState>();
+                    println!("{:?}", *state.selected_token.lock().unwrap());
+                    if *state.selected_token.lock().unwrap() == TokenSymbol::JLP {
+                        return;
+                    }
+                    *state.selected_token.lock().unwrap() = TokenSymbol::JLP;
+
                     let icon = include_image!("./icons/JLP.png");
                     let state = app_handle.state::<AppState>();
                     let guard = state.token_sender.lock().unwrap();
