@@ -1,14 +1,14 @@
 use tauri::{
-    include_image,
     menu::{AboutMetadata, IconMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{TrayIconBuilder, TrayIconId},
 };
 
 use crate::{
-    assets::fetch_and_set_icon,
+    assets::{fetch_and_set_icon, read_local_image},
     jup::{TokenId, TokenSymbol},
 };
 
+#[derive(Copy, Clone)]
 pub struct TokenInfo {
     id: TokenId,
     symbol: TokenSymbol,
@@ -37,24 +37,40 @@ pub fn setup_tray(
 
     // TODO: load from json (we can't async load from url at the moment)
     // icons
-    let icon = include_image!("./icons/JLP.png");
-    let token = TokenInfo {
-        id: TokenId::JLP,
-        symbol: TokenSymbol::JLP,
-    };
+    let tokens: Vec<TokenInfo> = vec![
+        TokenInfo {
+            id: TokenId::JLP,
+            symbol: TokenSymbol::JLP,
+        },
+        TokenInfo {
+            id: TokenId::SOL,
+            symbol: TokenSymbol::SOL,
+        },
+    ];
 
     // Menu
-    let menu = Menu::with_items(
-        app_handle,
-        &[
-            &IconMenuItem::with_id(
+    let token_menu_items: Vec<_> = tokens
+        .iter()
+        .map(|token| {
+            let icon_path = format!("./icons/{}.png", token.symbol);
+            let icon = read_local_image(&icon_path).expect("Image not found");
+
+            IconMenuItem::with_id(
                 app_handle,
                 token.id,
                 token.symbol,
                 true,
                 Some(icon),
                 None::<&str>,
-            )?,
+            )
+        })
+        .collect::<Result<_, _>>()?;
+
+    let menu = Menu::with_items(
+        app_handle,
+        &[
+            &token_menu_items[0],
+            &token_menu_items[1],
             &PredefinedMenuItem::separator(app_handle)?,
             &setting_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,

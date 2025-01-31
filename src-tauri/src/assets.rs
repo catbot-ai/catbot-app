@@ -4,6 +4,30 @@ use std::io::Cursor;
 use tauri::image::Image;
 
 use crate::{jup::TokenId, ray::get_token_logo_url_by_mint_address};
+use anyhow::{Context, Result};
+use std::fs::File;
+use std::io::BufReader;
+
+pub fn read_local_image(file_path: &str) -> Result<Image> {
+    // Open the file
+    let file = File::open(file_path).context("Failed to open file")?;
+    let reader = BufReader::new(file);
+
+    // Decode the image
+    let img = ImageReader::new(reader)
+        .with_guessed_format() // Guess the image format based on the file content
+        .context("Failed to guess image format")?
+        .decode()
+        .context("Failed to decode image")?;
+
+    // Convert the image to RGBA8 format
+    let rgba_img = img.to_rgba8();
+    let img_vec = rgba_img.to_vec();
+
+    // Create and return your custom Image type
+    let image = Image::new_owned(img_vec, rgba_img.width(), rgba_img.height());
+    Ok(image)
+}
 
 pub async fn fetch_token_image(token_id: &TokenId) -> anyhow::Result<Image> {
     let token_logo_url = get_token_logo_url_by_mint_address(&token_id.to_string());

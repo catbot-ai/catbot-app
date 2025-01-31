@@ -42,8 +42,20 @@ pub fn run() {
                 "setting" => {
                     // TODO
                 }
+                "So11111111111111111111111111111111111111112" => {
+                    let icon = include_image!("./icons/SOL.png");
+
+                    // Retrieve the tray ID from the state
+                    let state = app_handle.state::<AppState>();
+                    let tray_id = state.tray_id.lock().unwrap().as_ref().unwrap().clone();
+
+                    // Use tray_by_id to set the icon
+                    let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
+                    tray_icon
+                        .set_icon(Some(icon))
+                        .expect("Failed to set tray icon");
+                }
                 "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4" => {
-                    println!("setup JLP");
                     let icon = include_image!("./icons/JLP.png");
 
                     // Retrieve the tray ID from the state
