@@ -1,10 +1,7 @@
 use std::time::Duration;
 use tokio::sync::watch;
 
-use crate::{
-    jup::{fetch_price_from_jup_in_usdc, TokenId, TokenSymbol},
-    ray,
-};
+use crate::jup::{fetch_price_from_jup_in_usdc, TokenId, TokenSymbol};
 use wasm_timer::Delay;
 
 // TODO: When error it should send status to caller as ERROR_RESPONSE, NO_RESPONSE

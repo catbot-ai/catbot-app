@@ -55,6 +55,10 @@ pub fn run() {
                     tray_icon
                         .set_icon(Some(icon))
                         .expect("Failed to set tray icon");
+
+                    tray_icon
+                        .set_title(Some("…"))
+                        .expect("Failed to set tray title");
                 }
                 "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4" => {
                     let icon = include_image!("./icons/JLP.png");
@@ -67,6 +71,10 @@ pub fn run() {
                     tray_icon
                         .set_icon(Some(icon))
                         .expect("Failed to set tray icon");
+
+                    tray_icon
+                        .set_title(Some("…"))
+                        .expect("Failed to set tray title");
                 }
                 _ => {}
             }
