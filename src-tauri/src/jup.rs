@@ -19,11 +19,12 @@ pub enum TokenId {
     USDC,
 }
 
-#[derive(AsRefStr, EnumString, Display, Debug, Copy, Clone)]
+#[derive(Default, AsRefStr, EnumString, Display, Debug, Copy, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum TokenSymbol {
     #[strum(serialize = "SOL")]
     #[allow(non_camel_case_types)]
+    #[default]
     SOL,
     #[strum(serialize = "JLP")]
     #[allow(non_camel_case_types)]

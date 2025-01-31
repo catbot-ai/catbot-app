@@ -18,6 +18,8 @@ use tauri::Manager;
 #[derive(Default)]
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
+    selected_token: Mutex<TokenSymbol>,
+    token_sender: Mutex<Option<watch::Sender<TokenSymbol>>>,
 }
 
 #[tauri::command]
@@ -44,12 +46,11 @@ pub fn run() {
                 }
                 "So11111111111111111111111111111111111111112" => {
                     let icon = include_image!("./icons/SOL.png");
-
-                    // Retrieve the tray ID from the state
                     let state = app_handle.state::<AppState>();
+                    let guard = state.token_sender.lock().unwrap();
+                    let token_sender = guard.as_ref().expect("expect token_sender"); // Get the token sender
+                    token_sender.send(TokenSymbol::SOL).unwrap(); // Notify the token change
                     let tray_id = state.tray_id.lock().unwrap().as_ref().unwrap().clone();
-
-                    // Use tray_by_id to set the icon
                     let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
                     tray_icon
                         .set_icon(Some(icon))
@@ -57,12 +58,11 @@ pub fn run() {
                 }
                 "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4" => {
                     let icon = include_image!("./icons/JLP.png");
-
-                    // Retrieve the tray ID from the state
                     let state = app_handle.state::<AppState>();
+                    let guard = state.token_sender.lock().unwrap();
+                    let token_sender = guard.as_ref().expect("expect token_sender"); // Get the token sender
+                    token_sender.send(TokenSymbol::JLP).unwrap(); // Notify the token change
                     let tray_id = state.tray_id.lock().unwrap().as_ref().unwrap().clone();
-
-                    // Use tray_by_id to set the icon
                     let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
                     tray_icon
                         .set_icon(Some(icon))
@@ -74,10 +74,13 @@ pub fn run() {
         .setup(move |app| {
             // Create the tray icon and store its ID in the state
             let tray_id = setup_tray(app.handle(), TokenSymbol::SOL).expect("expect tray_id");
-
-            // Store the tray ID in the state
             let state = app.state::<AppState>();
             *state.tray_id.lock().unwrap() = Some(tray_id.clone());
+
+            // Initialize the token watch channel
+            let (token_sender, token_receiver) = watch::channel(TokenSymbol::SOL); // Default token is SOL
+            *state.selected_token.lock().unwrap() = TokenSymbol::SOL; // Set initial token in state
+            *state.token_sender.lock().unwrap() = Some(token_sender.clone()); // Store the token sender
 
             // Feed
             let app_handle = app.handle().clone();
@@ -85,7 +88,6 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
                 loop {
-                    // Wait for price changes
                     let _ = price_receiver.changed().await;
                     let price = *price_receiver.borrow_and_update();
                     if let Some(price) = price {
@@ -97,7 +99,7 @@ pub fn run() {
 
             // Start price fetch loop with sender
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = run_loop(price_sender).await {
+                if let Err(e) = run_loop(price_sender, token_receiver).await {
                     eprintln!("Price fetch error: {}", e);
                 }
             });
