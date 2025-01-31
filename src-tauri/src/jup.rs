@@ -21,7 +21,7 @@ pub enum TokenId {
 
 #[derive(AsRefStr, EnumString, Display, Debug, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
-pub enum TokenName {
+pub enum TokenSymbol {
     #[strum(serialize = "SOL")]
     #[allow(non_camel_case_types)]
     SOL,

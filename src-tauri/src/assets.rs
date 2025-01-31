@@ -33,7 +33,7 @@ pub async fn fetch_and_set_icon(
     url: &str,
     tray: &tauri::tray::TrayIcon,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let image = fetch_image(&url).await?;
+    let image = fetch_image(url).await?;
 
     tray.set_icon(Some(image))?;
 

@@ -1,30 +1,32 @@
 use tauri::{
     include_image,
-    menu::{AboutMetadata, IconMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
+    menu::{AboutMetadata, IconMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{TrayIconBuilder, TrayIconId},
-    App,
 };
 
 use crate::{
     assets::fetch_and_set_icon,
-    jup::{TokenId, TokenName},
+    jup::{TokenId, TokenSymbol},
 };
 
 pub struct TokenInfo {
     id: TokenId,
-    name: TokenName,
+    symbol: TokenSymbol,
 }
 
-pub fn setup_tray(app: &mut App) -> anyhow::Result<TrayIconId> {
+pub fn setup_tray(
+    app_handle: &tauri::AppHandle,
+    token_symbol: TokenSymbol,
+) -> anyhow::Result<TrayIconId> {
     // Quit
-    let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let quit_i = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
 
     // Setting
-    let setting_i = MenuItem::with_id(app, "setting", "Setting", true, None::<&str>)?;
+    let setting_i = MenuItem::with_id(app_handle, "setting", "Setting", true, None::<&str>)?;
 
     // About
-    let pkg_info = app.package_info();
-    let config = app.config();
+    let pkg_info = app_handle.package_info();
+    let config = app_handle.config();
     let about_metadata = AboutMetadata {
         name: Some(pkg_info.name.clone()),
         version: Some(pkg_info.version.to_string()),
@@ -33,56 +35,53 @@ pub fn setup_tray(app: &mut App) -> anyhow::Result<TrayIconId> {
         ..Default::default()
     };
 
-    // TODO: load from json
+    // TODO: load from json (we can't async load from url at the moment)
     // icons
     let icon = include_image!("./icons/JLP.png");
     let token = TokenInfo {
         id: TokenId::JLP,
-        name: TokenName::JLP,
+        symbol: TokenSymbol::JLP,
     };
 
     // Menu
     let menu = Menu::with_items(
-        app,
+        app_handle,
         &[
-            &Submenu::with_items(
-                app,
-                "Foo",
+            &IconMenuItem::with_id(
+                app_handle,
+                token.id,
+                token.symbol,
                 true,
-                &[
-                    &PredefinedMenuItem::close_window(app, None)?,
-                    &MenuItem::new(app, "Hello", true, None::<&str>)?,
-                    &IconMenuItem::with_id(
-                        app,
-                        token.id,
-                        token.name,
-                        true,
-                        Some(icon),
-                        None::<&str>,
-                    )?,
-                ],
+                Some(icon),
+                None::<&str>,
             )?,
-            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::separator(app_handle)?,
             &setting_i,
-            &PredefinedMenuItem::about(app, None, Some(about_metadata))?,
-            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,
+            &PredefinedMenuItem::separator(app_handle)?,
             &quit_i,
         ],
     )?;
 
     let tray_icon = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
+        .icon(app_handle.default_window_icon().unwrap().clone())
         .menu(&menu)
         .show_menu_on_left_click(true)
-        .build(app)?;
+        .build(app_handle)?;
 
     // Clone values needed in async task before moving them
     let tray_id = tray_icon.id().clone();
 
     // Icon
     tauri::async_runtime::spawn(async move {
+        let token_address = match token_symbol {
+            TokenSymbol::SOL => TokenId::SOL,
+            TokenSymbol::JLP => TokenId::JLP,
+            TokenSymbol::USDC => TokenId::USDC,
+        };
+
         let _ = fetch_and_set_icon(
-            "https://img-v1.raydium.io/icon/So11111111111111111111111111111111111111112.png",
+            format!("https://img-v1.raydium.io/icon/{token_address}.png").as_str(),
             &tray_icon,
         )
         .await;
