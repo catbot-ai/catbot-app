@@ -23,6 +23,12 @@ pub struct TokenRegistry {
 }
 
 impl TokenRegistry {
+    pub fn new() -> Self {
+        let file_path = "./tokens/default.json";
+        let json_value = TokenRegistry::load(file_path).unwrap();
+        TokenRegistry::parse(json_value).expect("Invalid JSON")
+    }
+
     pub fn load(file_path: &str) -> Result<Vec<Token>> {
         let file = File::open(file_path).context("Failed to open token file")?;
         let reader = BufReader::new(file);
@@ -66,23 +72,12 @@ impl TokenRegistry {
             .collect()
     }
 
-    pub fn get_by_token_symbol(&self, token_symbol: &TokenSymbol) -> Option<&Token> {
-        let binding = self.symbol_map();
-        let address = binding
-            .get(token_symbol)
-            .unwrap_or_else(|| panic!("Not found {:#?}", token_symbol));
-        self.get_by_address(address)
-    }
-
     pub fn all_tokens(&self) -> Vec<&Token> {
         self.by_address.values().collect()
     }
 
     pub fn get_tokens() -> Vec<Token> {
-        let file_path = "./tokens/default.json";
-        let json_value = TokenRegistry::load(file_path).unwrap();
-        let token_registry = TokenRegistry::parse(json_value).unwrap();
-        token_registry.by_address.values().cloned().collect()
+        TokenRegistry::new().by_address.values().cloned().collect()
     }
 }
 
@@ -104,15 +99,14 @@ mod tests {
 
     #[test]
     fn test_token_registry_load_and_parse() {
-        let file_path = "./tokens/default.json";
-        let json_value = TokenRegistry::load(file_path).unwrap();
-        let token_registry = TokenRegistry::parse(json_value).unwrap();
-        let sol_token =
-            token_registry.get_by_address("So11111111111111111111111111111111111111112");
-        let jup_token = token_registry.get_by_token_symbol(&TokenSymbol::JLP);
+        let token_registry = TokenRegistry::new();
+        let sol_token = token_registry
+            .get_by_address("So11111111111111111111111111111111111111112")
+            .unwrap();
+        let jlp_token = token_registry.get_by_symbol(&TokenSymbol::JLP).unwrap();
 
-        println!("{:#?}", sol_token);
-        println!("{:#?}", jup_token);
+        assert_eq!(sol_token.symbol, TokenSymbol::SOL);
+        assert_eq!(jlp_token.symbol, TokenSymbol::JLP);
     }
 
     #[test]

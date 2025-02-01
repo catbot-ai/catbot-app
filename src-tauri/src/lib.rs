@@ -109,9 +109,7 @@ pub fn run() {
             }
         })
         .setup(|app| {
-            let file_path = "./tokens/default.json";
-            let json_value = TokenRegistry::load(file_path).expect("Expect default.json");
-            let token_registry = TokenRegistry::parse(json_value).expect("Expect valid JSON");
+            let token_registry = TokenRegistry::new();
             *app.state::<AppState>().token_registry.lock().unwrap() = token_registry;
 
             let tray_id = setup_tray(app.handle()).expect("Expect tray_id");

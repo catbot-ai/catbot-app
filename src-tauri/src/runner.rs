@@ -15,10 +15,7 @@ pub async fn run_loop(
     let mut current_token = *token_receiver.borrow();
     let mut retry_count = 0;
 
-    let file_path = "./tokens/default.json";
-    let json_value = TokenRegistry::load(file_path).unwrap();
-    let token_registry = TokenRegistry::parse(json_value).unwrap();
-    let symbol_map = token_registry.symbol_map().clone();
+    let token_registry = TokenRegistry::new();
 
     loop {
         // Check for token changes
@@ -28,17 +25,13 @@ pub async fn run_loop(
         }
 
         // Get token address from symbol map
-        let token_address = match symbol_map.get(&current_token) {
-            Some(addr) => addr,
-            None => {
-                println!("No address found for token {:?}", current_token);
-                sleep(POLL_INTERVAL).await;
-                continue;
-            }
-        };
+        let token_address_string = &token_registry
+            .get_by_symbol(&current_token)
+            .expect("Not found data for symbol:{current_token}")
+            .address;
 
         // Fetch price with retry logic
-        match fetch_price(token_address).await {
+        match fetch_price(token_address_string).await {
             Ok(price) => {
                 price_sender.send(Some(price))?;
                 retry_count = 0; // Reset retry counter on success
