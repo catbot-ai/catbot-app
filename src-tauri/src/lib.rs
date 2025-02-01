@@ -7,11 +7,11 @@ pub mod token_registry;
 pub mod tray;
 
 use assets::read_local_image;
-use jup::TokenSymbol;
+use jup::{fetch_price, TokenSymbol};
 use runner::run_loop;
 use tauri::{tray::TrayIconId, Manager};
 use tauri_plugin_notification::NotificationExt;
-use token_registry::TokenRegistry;
+use token_registry::{Token, TokenRegistry};
 use tokio::sync::watch;
 use tray::setup_tray;
 
@@ -30,6 +30,61 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+#[tauri::command]
+async fn update_token_and_price(app_handle: tauri::AppHandle, token: Token) -> Result<(), String> {
+    // Update selected token
+    let state = app_handle.state::<AppState>();
+
+    // Prevent `update_token_and_price` is not `Send`
+    {
+        let mut selected_token = state.selected_token.lock().unwrap();
+        if *selected_token == token.symbol {
+            return Ok(());
+        }
+        *selected_token = token.symbol;
+    }
+
+    // Update tray icon and title
+    let icon_path = format!("./tokens/{}.png", token.symbol);
+    let icon = read_local_image(&icon_path).map_err(|e| e.to_string())?;
+
+    if let Some(sender) = state.token_sender.lock().unwrap().as_ref() {
+        sender.send(token.symbol).map_err(|e| e.to_string())?;
+    }
+
+    let tray_id = {
+        state
+            .tray_id
+            .lock()
+            .unwrap()
+            .clone()
+            .ok_or("Tray not initialized".to_string())?
+    };
+
+    let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
+    tray_icon.set_icon(Some(icon)).map_err(|e| e.to_string())?;
+
+    // Loading
+    tray_icon.set_title(Some("…")).map_err(|e| e.to_string())?;
+
+    // Fetch price
+    match fetch_price(&token.address).await {
+        Ok(price) => {
+            tray_icon
+                .set_title(Some(&format!("${:.2}", price)))
+                .map_err(|e| e.to_string())?;
+        }
+        Err(e) => {
+            tray_icon
+                .set_title(Some("Error"))
+                .map_err(|e| e.to_string())?;
+            eprintln!("Price fetch failed: {}", e);
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -40,38 +95,17 @@ pub fn run() {
             let id = event.id.as_ref();
             let state = app_handle.state::<AppState>();
             let registry = state.token_registry.lock().unwrap();
-
             if let Some(token) = registry.get_by_address(id) {
-                let mut selected_token = state.selected_token.lock().unwrap();
-                println!("{selected_token:#?} -> {}", token.symbol);
-                if *selected_token == token.symbol {
-                    return;
-                }
-                *selected_token = token.symbol;
-
-                let icon_path = format!("./tokens/{}.png", token.symbol);
-                let icon = read_local_image(&icon_path).expect("Image not found");
-
-                if let Some(sender) = state.token_sender.lock().unwrap().as_ref() {
-                    sender.send(token.symbol).unwrap();
-                }
-
-                if let Some(tray_id) = state.tray_id.lock().unwrap().as_ref() {
-                    let tray_icon = app_handle.tray_by_id(tray_id).expect("Tray missing");
-                    tray_icon
-                        .set_icon(Some(icon))
-                        .expect("Failed to set tray icon");
-                    tray_icon
-                        .set_title(Some("…"))
-                        .expect("Failed to set tray title");
-                }
+                let token = token.clone();
+                let app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    // Spawn a new async task
+                    if let Err(e) = update_token_and_price(app_handle, token).await {
+                        eprintln!("Error updating token and price: {}", e);
+                    }
+                });
             } else {
-                match id {
-                    "quit" => app_handle.exit(0),
-                    "about" => { /* TODO */ }
-                    "setting" => { /* TODO */ }
-                    _ => {}
-                }
+                // TODO?
             }
         })
         .setup(|app| {
@@ -121,6 +155,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, update_token_and_price]) // Add the new command
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
