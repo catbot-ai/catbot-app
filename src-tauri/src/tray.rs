@@ -1,6 +1,7 @@
 use tauri::{
-    menu::{AboutMetadata, IconMenuItem, Menu, MenuItem, PredefinedMenuItem},
+    menu::{AboutMetadata, IconMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{TrayIconBuilder, TrayIconId},
+    EventLoopMessage, Wry,
 };
 
 use crate::{assets::read_local_image, jup::TokenSymbol, token_registry::TokenRegistry};
@@ -47,10 +48,6 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     let menu = Menu::with_items(
         app_handle,
         &[
-            &token_menu_items[0],
-            &token_menu_items[1],
-            &token_menu_items[2],
-            &token_menu_items[3],
             &PredefinedMenuItem::separator(app_handle)?,
             &setting_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,
@@ -58,6 +55,13 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
             &quit_i,
         ],
     )?;
+
+    // Convert each IconMenuItem to a &dyn IsMenuItem
+    let token_refs: Vec<&dyn IsMenuItem<tauri::Wry>> = token_menu_items
+        .iter()
+        .map(|item| item as &dyn IsMenuItem<tauri::Wry>)
+        .collect();
+    let _ = menu.insert_items(&token_refs, 0);
 
     let tray_icon = TrayIconBuilder::new()
         .icon(app_handle.default_window_icon().unwrap().clone())
