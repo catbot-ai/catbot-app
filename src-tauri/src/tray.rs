@@ -3,11 +3,7 @@ use tauri::{
     tray::{TrayIconBuilder, TrayIconId},
 };
 
-use crate::{
-    assets::read_local_image,
-    jup::TokenSymbol,
-    token_registry::{Token, TokenRegistry},
-};
+use crate::{assets::read_local_image, jup::TokenSymbol, token_registry::TokenRegistry};
 
 pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Quit
