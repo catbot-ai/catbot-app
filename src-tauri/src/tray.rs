@@ -1,7 +1,6 @@
 use tauri::{
     menu::{AboutMetadata, IconMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{TrayIconBuilder, TrayIconId},
-    EventLoopMessage, Wry,
 };
 
 use crate::{assets::read_local_image, jup::TokenSymbol, token_registry::TokenRegistry};
