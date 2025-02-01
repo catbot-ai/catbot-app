@@ -104,8 +104,6 @@ pub fn run() {
                         eprintln!("Error updating token and price: {}", e);
                     }
                 });
-            } else {
-                // TODO?
             }
         })
         .setup(|app| {
