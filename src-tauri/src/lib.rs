@@ -9,7 +9,7 @@ pub mod tray;
 use assets::read_local_image;
 use jup::TokenSymbol;
 use runner::run_loop;
-use tauri::{include_image, tray::TrayIconId, Manager};
+use tauri::{tray::TrayIconId, Manager};
 use tauri_plugin_notification::NotificationExt;
 use token_registry::TokenRegistry;
 use tokio::sync::watch;

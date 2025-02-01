@@ -3,7 +3,11 @@ use tauri::{
     tray::{TrayIconBuilder, TrayIconId},
 };
 
-use crate::{assets::read_local_image, token_registry::TokenRegistry};
+use crate::{
+    assets::read_local_image,
+    jup::TokenSymbol,
+    token_registry::{Token, TokenRegistry},
+};
 
 pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Quit
@@ -68,20 +72,12 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Clone values needed in async task before moving them
     let tray_id = tray_icon.id().clone();
 
-    // // Icon
-    // tauri::async_runtime::spawn(async move {
-    //     let token_address = match token_symbol {
-    //         TokenSymbol::SOL => TokenId::SOL,
-    //         TokenSymbol::JLP => TokenId::JLP,
-    //         TokenSymbol::USDC => TokenId::USDC,
-    //     };
-
-    //     let _ = fetch_and_set_icon(
-    //         format!("https://img-v1.raydium.io/icon/{token_address}.png").as_str(),
-    //         &tray_icon,
-    //     )
-    //     .await;
-    // });
+    // Default Icon
+    tauri::async_runtime::spawn(async move {
+        let icon_path = format!("./tokens/{}.png", TokenSymbol::SOL);
+        let icon = read_local_image(&icon_path).expect("Image not found");
+        tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
+    });
 
     Ok(tray_id)
 }
