@@ -3,21 +3,9 @@ use tauri::{
     tray::{TrayIconBuilder, TrayIconId},
 };
 
-use crate::{
-    assets::{fetch_and_set_icon, read_local_image},
-    jup::{TokenId, TokenSymbol},
-};
+use crate::{assets::read_local_image, token_registry::TokenRegistry};
 
-#[derive(Copy, Clone)]
-pub struct TokenInfo {
-    id: TokenId,
-    symbol: TokenSymbol,
-}
-
-pub fn setup_tray(
-    app_handle: &tauri::AppHandle,
-    token_symbol: TokenSymbol,
-) -> anyhow::Result<TrayIconId> {
+pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Quit
     let quit_i = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
 
@@ -35,29 +23,19 @@ pub fn setup_tray(
         ..Default::default()
     };
 
-    // TODO: load from json (we can't async load from url at the moment)
-    // icons
-    let tokens: Vec<TokenInfo> = vec![
-        TokenInfo {
-            id: TokenId::JLP,
-            symbol: TokenSymbol::JLP,
-        },
-        TokenInfo {
-            id: TokenId::SOL,
-            symbol: TokenSymbol::SOL,
-        },
-    ];
+    // Default tokens
+    let tokens = TokenRegistry::get_tokens();
 
     // Menu
     let token_menu_items: Vec<_> = tokens
         .iter()
         .map(|token| {
-            let icon_path = format!("./icons/{}.png", token.symbol);
+            let icon_path = format!("./tokens/{}.png", token.symbol);
             let icon = read_local_image(&icon_path).expect("Image not found");
 
             IconMenuItem::with_id(
                 app_handle,
-                token.id,
+                token.address.clone(),
                 token.symbol,
                 true,
                 Some(icon),
@@ -71,6 +49,8 @@ pub fn setup_tray(
         &[
             &token_menu_items[0],
             &token_menu_items[1],
+            &token_menu_items[2],
+            &token_menu_items[3],
             &PredefinedMenuItem::separator(app_handle)?,
             &setting_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,
@@ -88,20 +68,20 @@ pub fn setup_tray(
     // Clone values needed in async task before moving them
     let tray_id = tray_icon.id().clone();
 
-    // Icon
-    tauri::async_runtime::spawn(async move {
-        let token_address = match token_symbol {
-            TokenSymbol::SOL => TokenId::SOL,
-            TokenSymbol::JLP => TokenId::JLP,
-            TokenSymbol::USDC => TokenId::USDC,
-        };
+    // // Icon
+    // tauri::async_runtime::spawn(async move {
+    //     let token_address = match token_symbol {
+    //         TokenSymbol::SOL => TokenId::SOL,
+    //         TokenSymbol::JLP => TokenId::JLP,
+    //         TokenSymbol::USDC => TokenId::USDC,
+    //     };
 
-        let _ = fetch_and_set_icon(
-            format!("https://img-v1.raydium.io/icon/{token_address}.png").as_str(),
-            &tray_icon,
-        )
-        .await;
-    });
+    //     let _ = fetch_and_set_icon(
+    //         format!("https://img-v1.raydium.io/icon/{token_address}.png").as_str(),
+    //         &tray_icon,
+    //     )
+    //     .await;
+    // });
 
     Ok(tray_id)
 }

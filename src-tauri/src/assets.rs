@@ -3,7 +3,7 @@ use reqwest::Client;
 use std::io::Cursor;
 use tauri::image::Image;
 
-use crate::{jup::TokenId, ray::get_token_logo_url_by_mint_address};
+use crate::{jup::TokenAddress, ray::get_token_logo_url_by_mint_address};
 use anyhow::{Context, Result};
 use std::fs::File;
 use std::io::BufReader;
@@ -29,10 +29,8 @@ pub fn read_local_image(file_path: &str) -> Result<Image> {
     Ok(image)
 }
 
-pub async fn fetch_token_image(token_id: &TokenId) -> anyhow::Result<Image> {
-    let token_logo_url = get_token_logo_url_by_mint_address(&token_id.to_string());
-    let logo_url = format!("https://img-v1.raydium.io/icon/{token_logo_url}.png");
-
+pub async fn fetch_token_image(token_address: &TokenAddress) -> anyhow::Result<Image> {
+    let logo_url = get_token_logo_url_by_mint_address(&token_address.to_string());
     let image = fetch_image(&logo_url).await?;
 
     Ok(image.to_owned())

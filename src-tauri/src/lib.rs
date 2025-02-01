@@ -3,23 +3,25 @@ pub mod feeder;
 pub mod jup;
 pub mod ray;
 pub mod runner;
+pub mod token_registry;
 pub mod tray;
 
 use jup::TokenSymbol;
 use runner::run_loop;
-use tauri::{include_image, tray::TrayIconId};
+use tauri::{include_image, tray::TrayIconId, Manager};
 use tauri_plugin_notification::NotificationExt;
+use token_registry::TokenRegistry;
 use tokio::sync::watch;
 use tray::setup_tray;
 
 use std::sync::Mutex;
-use tauri::Manager;
 
 #[derive(Default)]
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
     selected_token: Mutex<TokenSymbol>,
     token_sender: Mutex<Option<watch::Sender<TokenSymbol>>>,
+    token_registry: Mutex<TokenRegistry>,
 }
 
 #[tauri::command]
@@ -32,106 +34,93 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
-        .manage(AppState::default()) // Add the state here
-        .on_menu_event(move |app_handle, event| {
-            match event.id.as_ref() {
-                "quit" => {
-                    app_handle.exit(0);
-                }
-                "about" => {
-                    // TODO
-                }
-                "setting" => {
-                    // TODO
-                }
-                "So11111111111111111111111111111111111111112" => {
-                    let state = app_handle.state::<AppState>();
-                    println!("{:?}", *state.selected_token.lock().unwrap());
-                    if *state.selected_token.lock().unwrap() == TokenSymbol::SOL {
-                        return;
-                    }
-                    *state.selected_token.lock().unwrap() = TokenSymbol::SOL;
+        .manage(AppState::default())
+        .on_menu_event(|app_handle, event| {
+            let id = event.id.as_ref();
+            let state = app_handle.state::<AppState>();
+            let registry = state.token_registry.lock().unwrap();
 
-                    let icon = include_image!("./icons/SOL.png");
-                    let state = app_handle.state::<AppState>();
-                    let guard = state.token_sender.lock().unwrap();
-                    let token_sender = guard.as_ref().expect("expect token_sender"); // Get the token sender
-                    token_sender.send(TokenSymbol::SOL).unwrap(); // Notify the token change
-                    let tray_id = state.tray_id.lock().unwrap().as_ref().unwrap().clone();
-                    let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
+            if let Some(token) = registry.get_by_address(id) {
+                let mut selected_token = state.selected_token.lock().unwrap();
+                println!("{selected_token:#?} -> {}", token.symbol);
+                if *selected_token == token.symbol {
+                    return;
+                }
+                *selected_token = token.symbol;
+
+                // TODO: replace with dynamic icon file or fetch
+                let icon = match token.symbol {
+                    TokenSymbol::SOL => include_image!("./tokens/SOL.png"),
+                    TokenSymbol::JLP => include_image!("./tokens/JLP.png"),
+                    TokenSymbol::USDC => include_image!("./tokens/USDC.png"),
+                    TokenSymbol::JUP => include_image!("./tokens/JUP.png"),
+                };
+
+                if let Some(sender) = state.token_sender.lock().unwrap().as_ref() {
+                    sender.send(token.symbol).unwrap();
+                }
+
+                if let Some(tray_id) = state.tray_id.lock().unwrap().as_ref() {
+                    let tray_icon = app_handle.tray_by_id(tray_id).expect("Tray missing");
                     tray_icon
                         .set_icon(Some(icon))
                         .expect("Failed to set tray icon");
-
                     tray_icon
                         .set_title(Some("…"))
                         .expect("Failed to set tray title");
                 }
-                "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4" => {
-                    let state = app_handle.state::<AppState>();
-                    println!("{:?}", *state.selected_token.lock().unwrap());
-                    if *state.selected_token.lock().unwrap() == TokenSymbol::JLP {
-                        return;
-                    }
-                    *state.selected_token.lock().unwrap() = TokenSymbol::JLP;
-
-                    let icon = include_image!("./icons/JLP.png");
-                    let state = app_handle.state::<AppState>();
-                    let guard = state.token_sender.lock().unwrap();
-                    let token_sender = guard.as_ref().expect("expect token_sender"); // Get the token sender
-                    token_sender.send(TokenSymbol::JLP).unwrap(); // Notify the token change
-                    let tray_id = state.tray_id.lock().unwrap().as_ref().unwrap().clone();
-                    let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
-                    tray_icon
-                        .set_icon(Some(icon))
-                        .expect("Failed to set tray icon");
-
-                    tray_icon
-                        .set_title(Some("…"))
-                        .expect("Failed to set tray title");
+            } else {
+                match id {
+                    "quit" => app_handle.exit(0),
+                    "about" => { /* TODO */ }
+                    "setting" => { /* TODO */ }
+                    _ => {}
                 }
-                _ => {}
             }
         })
-        .setup(move |app| {
-            // Create the tray icon and store its ID in the state
-            let tray_id = setup_tray(app.handle(), TokenSymbol::SOL).expect("expect tray_id");
-            let state = app.state::<AppState>();
-            *state.tray_id.lock().unwrap() = Some(tray_id.clone());
+        .setup(|app| {
+            let file_path = "./tokens/default.json";
+            let json_value = TokenRegistry::load(file_path).expect("Expect default.json");
+            let token_registry = TokenRegistry::parse(json_value).expect("Expect valid JSON");
+            *app.state::<AppState>().token_registry.lock().unwrap() = token_registry;
 
-            // Initialize the token watch channel
-            let (token_sender, token_receiver) = watch::channel(TokenSymbol::SOL); // Default token is SOL
-            *state.selected_token.lock().unwrap() = TokenSymbol::SOL; // Set initial token in state
-            *state.token_sender.lock().unwrap() = Some(token_sender.clone()); // Store the token sender
+            let tray_id = setup_tray(app.handle()).expect("Expect tray_id");
+            *app.state::<AppState>().tray_id.lock().unwrap() = Some(tray_id.clone());
 
-            // Feed
-            let app_handle = app.handle().clone();
+            let (token_sender, token_receiver) = watch::channel(TokenSymbol::SOL);
+            *app.state::<AppState>().token_sender.lock().unwrap() = Some(token_sender);
+            *app.state::<AppState>().selected_token.lock().unwrap() = TokenSymbol::SOL;
+
             let (price_sender, price_receiver) = watch::channel(None);
+            let app_handle = app.handle().clone();
+
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
                 loop {
                     let _ = price_receiver.changed().await;
                     let price = *price_receiver.borrow_and_update();
                     if let Some(price) = price {
+                        // let state = app_handle.state::<AppState>();
+                        // if let Some(tray_id) = state.tray_id.lock().unwrap().as_ref() {
                         let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
                         let _ = tray_icon.set_title(Some(&format!("${:.2}", price)));
+                        // }
                     }
                 }
             });
 
-            // Start price fetch loop with sender
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = run_loop(price_sender, token_receiver).await {
                     eprintln!("Price fetch error: {}", e);
                 }
             });
 
-            let _ = app
-                .notification()
+            app.notification()
                 .builder()
                 .title("Hello")
                 .body("World! 😎")
-                .show();
+                .show()
+                .unwrap();
 
             Ok(())
         })

@@ -108,7 +108,7 @@ pub fn get_token_logo_url_by_mint_address(mint_address: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{jup::TokenId, ray};
+    use crate::{jup::TokenSymbol, ray};
 
     use super::*;
 
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_get_logo_by_mint_address() {
-        let logo = get_token_logo_url_by_mint_address(&TokenId::USDC.to_string());
+        let logo = get_token_logo_url_by_mint_address(&TokenSymbol::USDC.to_string());
 
         assert_eq!(
             logo,
