@@ -6,6 +6,7 @@ pub mod runner;
 pub mod token_registry;
 pub mod tray;
 
+use assets::read_local_image;
 use jup::TokenSymbol;
 use runner::run_loop;
 use tauri::{include_image, tray::TrayIconId, Manager};
@@ -48,13 +49,8 @@ pub fn run() {
                 }
                 *selected_token = token.symbol;
 
-                // TODO: replace with dynamic icon file or fetch
-                let icon = match token.symbol {
-                    TokenSymbol::SOL => include_image!("./tokens/SOL.png"),
-                    TokenSymbol::JLP => include_image!("./tokens/JLP.png"),
-                    TokenSymbol::USDC => include_image!("./tokens/USDC.png"),
-                    TokenSymbol::JUP => include_image!("./tokens/JUP.png"),
-                };
+                let icon_path = format!("./tokens/{}.png", token.symbol);
+                let icon = read_local_image(&icon_path).expect("Image not found");
 
                 if let Some(sender) = state.token_sender.lock().unwrap().as_ref() {
                     sender.send(token.symbol).unwrap();
