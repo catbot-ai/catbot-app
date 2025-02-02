@@ -6,6 +6,10 @@ use tauri::{
 use crate::{assets::read_local_image, jup::TokenSymbol, token_registry::TokenRegistry};
 
 pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
+    // Portfolio
+    let portfolio_i =
+        MenuItem::with_id(app_handle, "portfolio", "JUP Portfolio", true, None::<&str>)?;
+
     // Quit
     let quit_i = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
 
@@ -47,6 +51,8 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     let menu = Menu::with_items(
         app_handle,
         &[
+            &PredefinedMenuItem::separator(app_handle)?,
+            &portfolio_i,
             &PredefinedMenuItem::separator(app_handle)?,
             &setting_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,
