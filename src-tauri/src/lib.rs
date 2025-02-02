@@ -10,7 +10,9 @@ pub mod tray;
 use commands::core::{greet, update_token_and_price};
 use jup::TokenSymbol;
 use runner::run_loop;
-use tauri::{tray::TrayIconId, Manager};
+use tauri::{
+    tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl, WebviewWindowBuilder,
+};
 use tauri_plugin_notification::NotificationExt;
 use token_registry::TokenRegistry;
 use tokio::sync::watch;
@@ -24,11 +26,12 @@ pub struct AppState {
     selected_token: Mutex<TokenSymbol>,
     token_sender: Mutex<Option<watch::Sender<TokenSymbol>>>,
     token_registry: Mutex<TokenRegistry>,
+    is_quit: Mutex<bool>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(AppState::default())
@@ -79,9 +82,29 @@ pub fn run() {
             let registry = state.token_registry.lock().unwrap();
 
             match id {
+                "quit" => {
+                    *app_handle.state::<AppState>().is_quit.lock().unwrap() = true;
+                    app_handle.exit(0);
+                }
                 "portfolio" => {
-                    print!("portfolio");
-                    let window = app_handle.get_webview_window("main").unwrap();
+                    let window = app_handle.get_webview_window("main");
+
+                    let window = match window {
+                        Some(window) => window,
+                        None => WebviewWindowBuilder::new(
+                            app_handle,
+                            "main",
+                            WebviewUrl::External(
+                                Url::parse("https://portfolio.jup.ag/").expect("Invalid url"),
+                            ),
+                        )
+                        .always_on_top(true)
+                        .build()
+                        .unwrap(),
+                    };
+
+                    let _ = window.set_size(LogicalSize::new(360, 600));
+
                     window.show().unwrap();
                     window.set_focus().unwrap();
                 }
@@ -100,6 +123,16 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![greet, update_token_and_price])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(move |app_handle, e| {
+        if let RunEvent::ExitRequested { api, .. } = &e {
+            // Keep the event loop running even if all windows are closed
+            // This allow us to catch system tray events when there is no window
+            if !*app_handle.state::<AppState>().is_quit.lock().unwrap() {
+                api.prevent_exit();
+            }
+        }
+    });
 }

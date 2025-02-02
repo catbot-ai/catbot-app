@@ -10,13 +10,6 @@
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [
-      {
-        "title": "hello-tauri",
-        "width": 360,
-        "height": 600
-      }
-    ],
     "security": {
       "csp": null
     }
