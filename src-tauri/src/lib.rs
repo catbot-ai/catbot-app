@@ -24,7 +24,7 @@ use std::sync::Mutex;
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
     selected_token: Mutex<Token>,
-    token_sender: Mutex<Option<watch::Sender<TokenSymbol>>>,
+    token_sender: Mutex<Option<watch::Sender<Vec<Token>>>>,
     token_registry: Mutex<TokenRegistry>,
     is_quit: Mutex<bool>,
 }
@@ -42,7 +42,10 @@ pub fn run() {
             let tray_id = setup_tray(app.handle()).expect("Expect tray_id");
             *app.state::<AppState>().tray_id.lock().unwrap() = Some(tray_id.clone());
 
-            let (token_sender, token_receiver) = watch::channel(TokenSymbol::SOL);
+            let (token_sender, token_receiver) = watch::channel(vec![TokenRegistry::new()
+                .get_by_symbol(&TokenSymbol::SOL)
+                .expect("Token ot exist")
+                .clone()]);
             *app.state::<AppState>().token_sender.lock().unwrap() = Some(token_sender);
 
             let (price_sender, price_receiver) = watch::channel(None);

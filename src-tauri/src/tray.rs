@@ -35,7 +35,8 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     };
 
     // Default tokens
-    let tokens = TokenRegistry::get_tokens();
+    let token_registry = TokenRegistry::new();
+    let tokens = token_registry.tokens.clone();
 
     // Menu
     let token_menu_items: Vec<_> = tokens
@@ -74,6 +75,37 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
         .map(|item| item as &dyn IsMenuItem<tauri::Wry>)
         .collect();
     let _ = menu.insert_items(&token_refs, 0);
+
+    // Pair
+    let pairs = [
+        token_registry
+            .get_by_symbol(&TokenSymbol::JLP)
+            .expect("Not exist")
+            .clone(),
+        token_registry
+            .get_by_symbol(&TokenSymbol::SOL)
+            .expect("Not exist")
+            .clone(),
+    ];
+    let pair_symbol = format!("{:?}_{:?}", pairs[0].symbol, pairs[1].symbol);
+    let pair_label = format!("{:?}/{:?}", pairs[0].symbol, pairs[1].symbol);
+    let icon_path = format!("./tokens/{}.png", pair_symbol);
+    let pair_icon = read_local_image(&icon_path).ok();
+    let pair_menu_item = IconMenuItem::with_id(
+        app_handle,
+        pair_symbol,
+        pair_label,
+        true,
+        pair_icon,
+        None::<&str>,
+    )?;
+    let _ = menu.insert_items(
+        &[
+            &pair_menu_item as &dyn IsMenuItem<tauri::Wry>,
+            &PredefinedMenuItem::separator(app_handle)?,
+        ],
+        0,
+    );
 
     let tray_icon = TrayIconBuilder::new()
         .icon(app_handle.default_window_icon().unwrap().clone())

@@ -3,32 +3,27 @@ use anyhow::Result;
 use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
-use crate::jup::{fetch_price, TokenSymbol};
-use crate::token_registry::TokenRegistry;
+use crate::jup::fetch_price;
+use crate::token_registry::Token;
 
 const POLL_INTERVAL: Duration = Duration::from_secs(30);
 
 pub async fn run_loop(
     price_sender: watch::Sender<Option<f64>>,
-    token_receiver: watch::Receiver<TokenSymbol>,
+    token_receiver: watch::Receiver<Vec<Token>>,
 ) -> Result<()> {
-    let mut current_token = *token_receiver.borrow();
+    let mut current_token = token_receiver.borrow().clone();
     let mut retry_count = 0;
-
-    let token_registry = TokenRegistry::new();
 
     loop {
         // Check for token changes
         if token_receiver.has_changed()? {
-            current_token = *token_receiver.borrow();
+            current_token = token_receiver.borrow().clone();
             retry_count = 0; // Reset retry counter on token change
         }
 
         // Get token address from symbol map
-        let token_address_string = &token_registry
-            .get_by_symbol(&current_token)
-            .expect("Not found data for symbol:{current_token}")
-            .address;
+        let token_address_string = &current_token[0].address;
 
         // Fetch price with retry logic
         match fetch_price(token_address_string).await {

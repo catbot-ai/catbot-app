@@ -31,7 +31,9 @@ pub async fn update_token_and_price(
     let icon = read_local_image(&icon_path).map_err(|e| e.to_string())?;
 
     if let Some(sender) = state.token_sender.lock().unwrap().as_ref() {
-        sender.send(token.symbol).map_err(|e| e.to_string())?;
+        sender
+            .send(vec![token.clone()])
+            .map_err(|e| e.to_string())?;
     }
 
     let tray_id = {
