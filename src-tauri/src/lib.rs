@@ -77,15 +77,26 @@ pub fn run() {
             let id = event.id.as_ref();
             let state = app_handle.state::<AppState>();
             let registry = state.token_registry.lock().unwrap();
-            if let Some(token) = registry.get_by_address(id) {
-                let token = token.clone();
-                let app_handle = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    // Spawn a new async task
-                    if let Err(e) = update_token_and_price(app_handle, token).await {
-                        eprintln!("Error updating token and price: {}", e);
+
+            match id {
+                "portfolio" => {
+                    print!("portfolio");
+                    let window = app_handle.get_webview_window("main").unwrap();
+                    window.show().unwrap();
+                    window.set_focus().unwrap();
+                }
+                _ => {
+                    if let Some(token) = registry.get_by_address(id) {
+                        let token = token.clone();
+                        let app_handle = app_handle.clone();
+                        tauri::async_runtime::spawn(async move {
+                            // Spawn a new async task
+                            if let Err(e) = update_token_and_price(app_handle, token).await {
+                                eprintln!("Error updating token and price: {}", e);
+                            }
+                        });
                     }
-                });
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![greet, update_token_and_price])
