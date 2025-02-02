@@ -58,18 +58,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_token() {
-        let token = Token {
-            address: "So111...11112".into(),
-            symbol: TokenSymbol::SOL,
-            name: "Wrapped SOL".into(),
-            decimals: 9,
-        };
-
-        println!("{token:#?}");
-    }
-
-    #[test]
     fn test_token_registry_load_and_parse() {
         // Make test return Result
         let token_registry = TokenRegistry::new();
