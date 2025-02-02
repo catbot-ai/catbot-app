@@ -62,7 +62,7 @@ pub async fn fetch_price(address: &str) -> Result<f64> {
         .and_then(|data| data.price.parse::<f64>().map_err(|e| anyhow!(e)))
 }
 
-pub async fn fetch_vs_price(base: &str, vs: &str) -> Result<f64> {
+pub async fn fetch_pair_price(base: &str, vs: &str) -> Result<f64> {
     let url = format!("{JUP_API}?ids={}&vsToken={}", base, vs);
     let response = reqwest::get(&url).await?.json::<PriceResponse>().await?;
 
