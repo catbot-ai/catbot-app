@@ -7,7 +7,7 @@ use std::io::BufReader;
 
 use crate::jup::TokenSymbol;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Token {
     pub address: String,
@@ -18,40 +18,41 @@ pub struct Token {
 
 #[derive(Debug, Default, Clone)]
 pub struct TokenRegistry {
-    by_address: HashMap<String, Token>,
-    by_symbol: HashMap<TokenSymbol, Token>,
+    pub by_address: HashMap<String, Token>,
+    pub by_symbol: HashMap<TokenSymbol, Token>,
+    pub tokens: Vec<Token>,
 }
 
 impl TokenRegistry {
     pub fn new() -> Self {
         let file_path = "./tokens/default.json";
-        let json_value = TokenRegistry::load(file_path).unwrap();
-        TokenRegistry::parse(json_value).expect("Invalid JSON")
+        let raw_tokens = Self::load_tokens(file_path).expect("Missing json");
+
+        Self::parse(raw_tokens).expect("Invalid json")
     }
 
-    pub fn load(file_path: &str) -> Result<Vec<Token>> {
+    fn load_tokens(file_path: &str) -> anyhow::Result<Vec<Token>> {
         let file = File::open(file_path).context("Failed to open token file")?;
         let reader = BufReader::new(file);
-        serde_json::from_reader(reader).context("Invalid token JSON format")
+        let tokens = serde_json::from_reader(reader)?;
+
+        Ok(tokens)
     }
 
-    pub fn parse(raw_tokens: Vec<Token>) -> Result<Self> {
-        let mut registry = TokenRegistry::default();
+    pub fn parse(tokens: Vec<Token>) -> anyhow::Result<Self> {
+        let mut registry = TokenRegistry {
+            tokens,
+            by_address: HashMap::new(),
+            by_symbol: HashMap::new(),
+        };
 
-        for raw in raw_tokens {
-            let symbol = raw.symbol;
-
-            let token = Token {
-                address: raw.address.clone(),
-                symbol,
-                name: raw.name,
-                decimals: raw.decimals,
-            };
+        for token in &registry.tokens {
+            let symbol = token.symbol;
 
             registry
                 .by_address
-                .insert(raw.address.clone(), token.clone());
-            registry.by_symbol.insert(symbol, token);
+                .insert(token.address.clone(), token.clone());
+            registry.by_symbol.insert(symbol, token.clone());
         }
 
         Ok(registry)
@@ -65,19 +66,8 @@ impl TokenRegistry {
         self.by_symbol.get(symbol)
     }
 
-    pub fn symbol_map(&self) -> HashMap<TokenSymbol, String> {
-        self.by_symbol
-            .iter()
-            .map(|(sym, token)| (*sym, token.address.clone()))
-            .collect()
-    }
-
-    pub fn all_tokens(&self) -> Vec<&Token> {
-        self.by_address.values().collect()
-    }
-
     pub fn get_tokens() -> Vec<Token> {
-        TokenRegistry::new().by_address.values().cloned().collect()
+        TokenRegistry::new().tokens
     }
 }
 
@@ -98,7 +88,8 @@ mod tests {
     }
 
     #[test]
-    fn test_token_registry_load_and_parse() {
+    fn test_token_registry_load_and_parse() -> Result<()> {
+        // Make test return Result
         let token_registry = TokenRegistry::new();
         let sol_token = token_registry
             .get_by_address("So11111111111111111111111111111111111111112")
@@ -107,12 +98,22 @@ mod tests {
 
         assert_eq!(sol_token.symbol, TokenSymbol::SOL);
         assert_eq!(jlp_token.symbol, TokenSymbol::JLP);
+        Ok(())
     }
 
     #[test]
-    fn test_get_tokens() {
+    fn test_get_tokens() -> Result<()> {
         let tokens = TokenRegistry::get_tokens();
-
         println!("{:#?}", tokens);
+        assert!(!tokens.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_tokens() -> Result<()> {
+        let registry = TokenRegistry::new();
+        let tokens = registry.tokens;
+        assert!(!tokens.is_empty());
+        Ok(())
     }
 }

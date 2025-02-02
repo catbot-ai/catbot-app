@@ -7,8 +7,15 @@ use crate::{assets::read_local_image, jup::TokenSymbol, token_registry::TokenReg
 
 pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Portfolio
-    let portfolio_i =
-        MenuItem::with_id(app_handle, "portfolio", "JUP Portfolio", true, None::<&str>)?;
+    let icon = read_local_image("../assets/jup-portfolio.png").ok();
+    let portfolio_i = IconMenuItem::with_id(
+        app_handle,
+        "portfolio",
+        "JUP Portfolio",
+        true,
+        icon,
+        None::<&str>,
+    )?;
 
     // Quit
     let quit_i = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
@@ -35,14 +42,14 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
         .iter()
         .map(|token| {
             let icon_path = format!("./tokens/{}.png", token.symbol);
-            let icon = read_local_image(&icon_path).expect("Image not found");
+            let icon = read_local_image(&icon_path).ok();
 
             IconMenuItem::with_id(
                 app_handle,
                 token.address.clone(),
                 token.symbol,
                 true,
-                Some(icon),
+                icon,
                 None::<&str>,
             )
         })

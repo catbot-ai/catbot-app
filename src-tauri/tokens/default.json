@@ -6,6 +6,12 @@
     "decimals": 9
   },
   {
+    "address": "LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X",
+    "name": "Laine Stake",
+    "symbol": "laineSOL",
+    "decimals": 9
+  },
+  {
     "address": "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4",
     "name": "Jupiter Perps",
     "symbol": "JLP",
@@ -16,11 +22,5 @@
     "name": "Jupiter",
     "symbol": "JUP",
     "decimals": 6
-  },
-  {
-    "address": "LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X",
-    "name": "Laine Stake",
-    "symbol": "laineSOL",
-    "decimals": 9
   }
 ]
