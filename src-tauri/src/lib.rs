@@ -23,7 +23,7 @@ use std::sync::Mutex;
 #[derive(Default)]
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
-    selected_token: Mutex<Token>,
+    selected_tokens: Mutex<Vec<Token>>,
     token_sender: Mutex<Option<watch::Sender<Vec<Token>>>>,
     token_registry: Mutex<TokenRegistry>,
     is_quit: Mutex<bool>,
@@ -81,7 +81,7 @@ pub fn run() {
         .on_menu_event(|app_handle, event| {
             let id = event.id.as_ref();
             let state = app_handle.state::<AppState>();
-            let registry = state.token_registry.lock().unwrap();
+            let token_registry = state.token_registry.lock().unwrap();
 
             match id {
                 "quit" => {
@@ -111,12 +111,32 @@ pub fn run() {
                     window.set_focus().unwrap();
                 }
                 _ => {
-                    if let Some(token) = registry.get_by_address(id) {
-                        let token = token.clone();
-                        let app_handle = app_handle.clone();
+                    let app_handle = app_handle.clone();
+                    if id.starts_with("pair:") {
+                        let ids = id.split(":").collect::<Vec<_>>();
+                        let pairs = ids[1].split("_").collect::<Vec<_>>();
+                        let tokens = vec![
+                            token_registry
+                                .get_by_address(pairs[0])
+                                .expect("Not exist")
+                                .clone(),
+                            token_registry
+                                .get_by_address(pairs[1])
+                                .expect("Not exist")
+                                .clone(),
+                        ];
+
                         tauri::async_runtime::spawn(async move {
                             // Spawn a new async task
-                            if let Err(e) = update_token_and_price(app_handle, token).await {
+                            if let Err(e) = update_token_and_price(app_handle, tokens).await {
+                                eprintln!("Error updating token and price: {}", e);
+                            }
+                        });
+                    } else if let Some(token) = token_registry.get_by_address(id) {
+                        let token = token.clone();
+                        tauri::async_runtime::spawn(async move {
+                            // Spawn a new async task
+                            if let Err(e) = update_token_and_price(app_handle, vec![token]).await {
                                 eprintln!("Error updating token and price: {}", e);
                             }
                         });

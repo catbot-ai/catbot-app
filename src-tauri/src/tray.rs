@@ -87,13 +87,14 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
             .expect("Not exist")
             .clone(),
     ];
-    let pair_symbol = format!("{:?}_{:?}", pairs[0].symbol, pairs[1].symbol);
-    let pair_label = format!("{:?}/{:?}", pairs[0].symbol, pairs[1].symbol);
+    let pair_symbol = format!("{}_{}", pairs[0].symbol, pairs[1].symbol);
+    let pair_address = format!("{}_{}", pairs[0].address, pairs[1].address);
+    let pair_label = format!("{}/{}", pairs[0].symbol, pairs[1].symbol);
     let icon_path = format!("./tokens/{}.png", pair_symbol);
     let pair_icon = read_local_image(&icon_path).ok();
     let pair_menu_item = IconMenuItem::with_id(
         app_handle,
-        pair_symbol,
+        format!("pair:{pair_address}"),
         pair_label,
         true,
         pair_icon,
