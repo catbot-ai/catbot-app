@@ -14,7 +14,7 @@ use tauri::{
     tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_notification::NotificationExt;
-use token_registry::TokenRegistry;
+use token_registry::{Token, TokenRegistry};
 use tokio::sync::watch;
 use tray::setup_tray;
 
@@ -23,7 +23,7 @@ use std::sync::Mutex;
 #[derive(Default)]
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
-    selected_token: Mutex<TokenSymbol>,
+    selected_token: Mutex<Token>,
     token_sender: Mutex<Option<watch::Sender<TokenSymbol>>>,
     token_registry: Mutex<TokenRegistry>,
     is_quit: Mutex<bool>,
@@ -44,7 +44,6 @@ pub fn run() {
 
             let (token_sender, token_receiver) = watch::channel(TokenSymbol::SOL);
             *app.state::<AppState>().token_sender.lock().unwrap() = Some(token_sender);
-            *app.state::<AppState>().selected_token.lock().unwrap() = TokenSymbol::SOL;
 
             let (price_sender, price_receiver) = watch::channel(None);
             let app_handle = app.handle().clone();

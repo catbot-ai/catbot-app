@@ -6,7 +6,7 @@ use std::io::BufReader;
 
 use crate::jup::TokenSymbol;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Token {
     pub address: String,

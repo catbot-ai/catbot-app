@@ -20,10 +20,10 @@ pub async fn update_token_and_price(
     // Prevent `update_token_and_price` is not `Send`
     {
         let mut selected_token = state.selected_token.lock().unwrap();
-        if *selected_token == token.symbol {
+        if *selected_token == token.clone() {
             return Ok(());
         }
-        *selected_token = token.symbol;
+        *selected_token = token.clone();
     }
 
     // Update tray icon and title
