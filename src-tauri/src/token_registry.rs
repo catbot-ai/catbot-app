@@ -1,7 +1,6 @@
-use anyhow::{Context, Result};
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -18,8 +17,6 @@ pub struct Token {
 
 #[derive(Debug, Default, Clone)]
 pub struct TokenRegistry {
-    pub by_address: HashMap<String, Token>,
-    pub by_symbol: HashMap<TokenSymbol, Token>,
     pub tokens: Vec<Token>,
 }
 
@@ -40,30 +37,15 @@ impl TokenRegistry {
     }
 
     pub fn parse(tokens: Vec<Token>) -> anyhow::Result<Self> {
-        let mut registry = TokenRegistry {
-            tokens,
-            by_address: HashMap::new(),
-            by_symbol: HashMap::new(),
-        };
-
-        for token in &registry.tokens {
-            let symbol = token.symbol;
-
-            registry
-                .by_address
-                .insert(token.address.clone(), token.clone());
-            registry.by_symbol.insert(symbol, token.clone());
-        }
-
-        Ok(registry)
+        Ok(TokenRegistry { tokens })
     }
 
     pub fn get_by_address(&self, address: &str) -> Option<&Token> {
-        self.by_address.get(address)
+        self.tokens.iter().find(|token| token.address == address)
     }
 
     pub fn get_by_symbol(&self, symbol: &TokenSymbol) -> Option<&Token> {
-        self.by_symbol.get(symbol)
+        self.tokens.iter().find(|token| token.symbol == *symbol)
     }
 
     pub fn get_tokens() -> Vec<Token> {
@@ -88,7 +70,7 @@ mod tests {
     }
 
     #[test]
-    fn test_token_registry_load_and_parse() -> Result<()> {
+    fn test_token_registry_load_and_parse() {
         // Make test return Result
         let token_registry = TokenRegistry::new();
         let sol_token = token_registry
@@ -98,22 +80,19 @@ mod tests {
 
         assert_eq!(sol_token.symbol, TokenSymbol::SOL);
         assert_eq!(jlp_token.symbol, TokenSymbol::JLP);
-        Ok(())
     }
 
     #[test]
-    fn test_get_tokens() -> Result<()> {
+    fn test_get_tokens() {
         let tokens = TokenRegistry::get_tokens();
         println!("{:#?}", tokens);
         assert!(!tokens.is_empty());
-        Ok(())
     }
 
     #[test]
-    fn test_tokens() -> Result<()> {
+    fn test_tokens() {
         let registry = TokenRegistry::new();
         let tokens = registry.tokens;
         assert!(!tokens.is_empty());
-        Ok(())
     }
 }
