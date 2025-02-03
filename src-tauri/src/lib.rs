@@ -8,7 +8,7 @@ pub mod token_registry;
 pub mod tray;
 
 use commands::core::{greet, update_token_and_price};
-use jup::TokenSymbol;
+use jup::{format_price, TokenSymbol};
 use runner::run_loop;
 use tauri::{
     tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl, WebviewWindowBuilder,
@@ -55,10 +55,10 @@ pub fn run() {
                 let mut price_receiver = price_receiver.clone();
                 loop {
                     let _ = price_receiver.changed().await;
-                    let price = *price_receiver.borrow_and_update();
+                    let price: Option<f64> = *price_receiver.borrow_and_update();
                     if let Some(price) = price {
                         let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
-                        let _ = tray_icon.set_title(Some(&format!("${:.2}", price)));
+                        let _ = tray_icon.set_title(Some(format_price(price)));
                     }
                 }
             });

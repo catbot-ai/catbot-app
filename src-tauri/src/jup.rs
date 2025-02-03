@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use strum::AsRefStr;
 use strum_macros::{Display, EnumString};
 
+use crate::token_registry::Token;
+
 #[derive(AsRefStr, Display, EnumString, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TokenAddress {
     Address(String),
@@ -71,4 +73,25 @@ pub async fn fetch_pair_price(base: &str, vs: &str) -> Result<f64> {
         .get(base)
         .ok_or_else(|| anyhow!("Base token {} not found", base))
         .and_then(|data| data.price.parse::<f64>().map_err(|e| anyhow!(e)))
+}
+
+pub fn format_price_result(result: Result<f64>) -> Option<String> {
+    result
+        .ok()
+        .map(format_price)
+        .or_else(|| Some("…".to_owned()))
+}
+
+pub fn format_price(price: f64) -> String {
+    let price_str = price.to_string();
+    format!("${}", &price_str[..5.min(price_str.len())])
+}
+
+pub async fn fetch_price_and_format(tokens: Vec<Token>) -> Option<String> {
+    let is_pair = tokens.len() == 2;
+    if !is_pair {
+        format_price_result(fetch_price(&tokens[0].address).await)
+    } else {
+        format_price_result(fetch_pair_price(&tokens[0].address, &tokens[1].address).await)
+    }
 }

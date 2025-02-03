@@ -1,5 +1,5 @@
 use crate::assets::read_local_image;
-use crate::jup::{fetch_pair_price, fetch_price};
+use crate::jup::fetch_price_and_format;
 use crate::token_registry::Token;
 use crate::AppState;
 use tauri::Manager;
@@ -57,35 +57,8 @@ pub async fn update_token_and_price(
     tray_icon.set_title(Some("…")).map_err(|e| e.to_string())?;
 
     // Fetch price
-    if !is_pair {
-        match fetch_price(&tokens[0].address).await {
-            Ok(price) => {
-                tray_icon
-                    .set_title(Some(&format!("${:.2}", price)))
-                    .map_err(|e| e.to_string())?;
-            }
-            Err(e) => {
-                tray_icon
-                    .set_title(Some("Error"))
-                    .map_err(|e| e.to_string())?;
-                eprintln!("Price fetch failed: {}", e);
-            }
-        }
-    } else {
-        match fetch_pair_price(&tokens[0].address, &tokens[1].address).await {
-            Ok(price) => {
-                tray_icon
-                    .set_title(Some(&format!("${:.2}", price)))
-                    .map_err(|e| e.to_string())?;
-            }
-            Err(e) => {
-                tray_icon
-                    .set_title(Some("Error"))
-                    .map_err(|e| e.to_string())?;
-                eprintln!("Price fetch failed: {}", e);
-            }
-        }
-    }
+    let price = fetch_price_and_format(tokens).await;
+    let _ = tray_icon.set_title(price);
 
     Ok(())
 }
