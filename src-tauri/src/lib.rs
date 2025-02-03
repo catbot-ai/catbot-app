@@ -8,7 +8,7 @@ pub mod token_registry;
 pub mod tray;
 
 use commands::core::{greet, update_token_and_price};
-use jup::{format_price, TokenSymbol};
+use jup::{format_price, TokenAddress, TokenSymbol};
 use runner::run_loop;
 use tauri::{
     tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl, WebviewWindowBuilder,
@@ -20,6 +20,13 @@ use tray::setup_tray;
 
 use std::sync::Mutex;
 
+#[allow(dead_code)]
+#[derive(Clone)]
+pub struct PriceTarget {
+    token_or_pair_symbol: String,
+    price: f64,
+}
+
 #[derive(Default)]
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
@@ -27,6 +34,8 @@ pub struct AppState {
     token_sender: Mutex<Option<watch::Sender<Vec<Token>>>>,
     token_registry: Mutex<TokenRegistry>,
     is_quit: Mutex<bool>,
+    price_targets: Mutex<Vec<PriceTarget>>,
+    price_watches: Mutex<Vec<String>>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -37,44 +46,81 @@ pub fn run() {
         .manage(AppState::default())
         .setup(|app| {
             let token_registry = TokenRegistry::new();
-            *app.state::<AppState>().token_registry.lock().unwrap() = token_registry;
+            let app_state = app.state::<AppState>();
+            *app_state.token_registry.lock().unwrap() = token_registry;
 
             let tray_id = setup_tray(app.handle()).expect("Expect tray_id");
-            *app.state::<AppState>().tray_id.lock().unwrap() = Some(tray_id.clone());
+            *app_state.tray_id.lock().unwrap() = Some(tray_id.clone());
 
             let (token_sender, token_receiver) = watch::channel(vec![TokenRegistry::new()
                 .get_by_symbol(&TokenSymbol::SOL)
                 .expect("Token ot exist")
                 .clone()]);
-            *app.state::<AppState>().token_sender.lock().unwrap() = Some(token_sender);
+            *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
             let (price_sender, price_receiver) = watch::channel(None);
             let app_handle = app.handle().clone();
 
+            // Test
+            let sol_symbol = TokenSymbol::SOL.to_string();
+            let pair_symbol = format!("{}_{}", TokenSymbol::JLP, TokenSymbol::SOL);
+            let price_targets = vec![
+                PriceTarget {
+                    token_or_pair_symbol: sol_symbol.clone(),
+                    price: 200f64,
+                },
+                PriceTarget {
+                    token_or_pair_symbol: pair_symbol.clone(),
+                    price: 0.021f64,
+                },
+            ];
+            *app_state.price_targets.lock().unwrap() = price_targets.clone();
+
+            let price_watches = vec![sol_symbol, pair_symbol];
+            *app_state.price_watches.lock().unwrap() = price_watches.clone();
+
+            // Price effect
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
                 loop {
                     let _ = price_receiver.changed().await;
                     let price: Option<f64> = *price_receiver.borrow_and_update();
                     if let Some(price) = price {
+                        // Update view
                         let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
                         let _ = tray_icon.set_title(Some(format_price(price)));
+
+                        // Notifications
+                        price_targets.iter().for_each(|price_target| {
+                            // Payload
+                            if price_watches.contains(&price_target.token_or_pair_symbol)
+                                && (price_target.price - price).abs() < 0.1f64
+                            {
+                                // TODO: Add to notify list
+                                // TODO: Mark as notified by remove from price_targets
+                            }
+                        });
                     }
                 }
             });
+
+            // // Notify
+            // app.notification()
+            // .builder()
+            // .title(format!(
+            //     "{}: ${}",
+            //     price_target.token_or_pair_symbol,
+            //     format_price(price)
+            // ))
+            // // .body(format!("${}", format_price(price)))
+            // .show()
+            // .unwrap();
 
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = run_loop(price_sender, token_receiver).await {
                     eprintln!("Price fetch error: {}", e);
                 }
             });
-
-            app.notification()
-                .builder()
-                .title("Hello")
-                .body("World! 😎")
-                .show()
-                .unwrap();
 
             Ok(())
         })
@@ -112,9 +158,8 @@ pub fn run() {
                 }
                 _ => {
                     let app_handle = app_handle.clone();
-                    if id.starts_with("pair:") {
-                        let ids = id.split(":").collect::<Vec<_>>();
-                        let pairs = ids[1].split("_").collect::<Vec<_>>();
+                    if id.contains("_") {
+                        let pairs = id.split("_").collect::<Vec<_>>();
                         let tokens = vec![
                             token_registry
                                 .get_by_address(pairs[0])
