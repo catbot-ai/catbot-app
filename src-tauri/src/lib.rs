@@ -8,12 +8,12 @@ pub mod token_registry;
 pub mod tray;
 
 use commands::core::{greet, update_token_and_price};
-use jup::{format_price, TokenAddress, TokenSymbol};
+use feeder::PriceInfo;
+use jup::{format_price, TokenSymbol};
 use runner::run_loop;
 use tauri::{
     tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl, WebviewWindowBuilder,
 };
-use tauri_plugin_notification::NotificationExt;
 use token_registry::{Token, TokenRegistry};
 use tokio::sync::watch;
 use tray::setup_tray;
@@ -58,7 +58,7 @@ pub fn run() {
                 .clone()]);
             *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
-            let (price_sender, price_receiver) = watch::channel(None);
+            let (price_sender, price_receiver) = watch::channel::<PriceInfo>(PriceInfo::default());
             let app_handle = app.handle().clone();
 
             // Test
@@ -84,10 +84,13 @@ pub fn run() {
                 let mut price_receiver = price_receiver.clone();
                 loop {
                     let _ = price_receiver.changed().await;
-                    let price: Option<f64> = *price_receiver.borrow_and_update();
+                    let price_info = *price_receiver.borrow_and_update();
+
+                    let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
+
+                    let price = price_info.price;
                     if let Some(price) = price {
                         // Update view
-                        let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
                         let _ = tray_icon.set_title(Some(format_price(price)));
 
                         // Notifications
@@ -100,6 +103,9 @@ pub fn run() {
                                 // TODO: Mark as notified by remove from price_targets
                             }
                         });
+                    } else if price_info.retry_count > 0 {
+                        // Update view
+                        let _ = tray_icon.set_title(Some("…".to_owned()));
                     }
                 }
             });

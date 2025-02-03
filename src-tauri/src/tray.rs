@@ -94,7 +94,7 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     let pair_icon = read_local_image(&icon_path).ok();
     let pair_menu_item = IconMenuItem::with_id(
         app_handle,
-        format!("pair:{pair_address}"),
+        pair_address,
         pair_label,
         true,
         pair_icon,
