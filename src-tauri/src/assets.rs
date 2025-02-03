@@ -30,7 +30,7 @@ pub fn read_local_image(file_path: &str) -> Result<Image> {
 }
 
 pub async fn fetch_token_image(token_address: &TokenAddress) -> anyhow::Result<Image> {
-    let logo_url = get_token_logo_url_by_mint_address(&token_address.to_string());
+    let logo_url = get_token_logo_url_by_mint_address(token_address.as_ref());
     let image = fetch_image(&logo_url).await?;
 
     Ok(image.to_owned())
