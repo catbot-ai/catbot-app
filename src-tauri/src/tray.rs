@@ -20,8 +20,8 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Quit
     let quit_i = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
 
-    // Setting
-    let setting_i = MenuItem::with_id(app_handle, "setting", "Setting", true, None::<&str>)?;
+    // Settings
+    let settings_i = MenuItem::with_id(app_handle, "settings", "Setting", true, None::<&str>)?;
 
     // About
     let pkg_info = app_handle.package_info();
@@ -62,7 +62,7 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
             &PredefinedMenuItem::separator(app_handle)?,
             &portfolio_i,
             &PredefinedMenuItem::separator(app_handle)?,
-            &setting_i,
+            &settings_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,
             &PredefinedMenuItem::separator(app_handle)?,
             &quit_i,

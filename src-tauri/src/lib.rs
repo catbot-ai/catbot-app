@@ -136,18 +136,39 @@ pub fn run() {
             let token_registry = state.token_registry.lock().unwrap();
 
             match id {
+                "settings" => {
+                    let window = app_handle.get_webview_window("main");
+
+                    let window = match window {
+                        Some(window) => window,
+                        None => tauri::WebviewWindowBuilder::new(
+                            app_handle,
+                            "Settings",
+                            WebviewUrl::App("index.html".into()),
+                        )
+                        .title("Settings")
+                        .always_on_top(true)
+                        .build()
+                        .unwrap(),
+                    };
+
+                    let _ = window.set_size(LogicalSize::new(360, 600));
+
+                    window.show().unwrap();
+                    window.set_focus().unwrap();
+                }
                 "quit" => {
                     *app_handle.state::<AppState>().is_quit.lock().unwrap() = true;
                     app_handle.exit(0);
                 }
                 "portfolio" => {
-                    let window = app_handle.get_webview_window("main");
+                    let window = app_handle.get_webview_window("portfolio");
 
                     let window = match window {
                         Some(window) => window,
                         None => WebviewWindowBuilder::new(
                             app_handle,
-                            "main",
+                            "portfolio",
                             WebviewUrl::External(
                                 Url::parse("https://portfolio.jup.ag/").expect("Invalid url"),
                             ),

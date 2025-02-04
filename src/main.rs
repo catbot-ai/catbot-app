@@ -1,10 +1,10 @@
 mod app;
 
-use app::App;
+use app::app;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::Level;
 
 fn main() {
     dioxus_logger::init(Level::INFO).expect("failed to init logger");
-    launch(App);
+    launch(app);
 }
