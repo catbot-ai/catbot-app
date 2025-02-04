@@ -1,9 +1,43 @@
 use tauri::{
     menu::{AboutMetadata, IconMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{TrayIconBuilder, TrayIconId},
+    AppHandle,
 };
 
 use crate::{assets::read_local_image, jup::TokenSymbol, token_registry::TokenRegistry};
+
+fn get_menu_pair_item(
+    app_handle: &AppHandle,
+    token_registry: &TokenRegistry,
+    token_a_symbol: &TokenSymbol,
+    token_b_symbol: &TokenSymbol,
+) -> anyhow::Result<IconMenuItem<tauri::Wry>> {
+    let pairs = [
+        token_registry
+            .get_by_symbol(token_a_symbol)
+            .expect("Not exist")
+            .clone(),
+        token_registry
+            .get_by_symbol(token_b_symbol)
+            .expect("Not exist")
+            .clone(),
+    ];
+    let pair_symbol = format!("{}_{}", pairs[0].symbol, pairs[1].symbol);
+    let pair_address = format!("{}_{}", pairs[0].address, pairs[1].address);
+    let pair_label = format!("{}/{}", pairs[0].symbol, pairs[1].symbol);
+    let icon_path = format!("./tokens/{}.png", pair_symbol);
+    let pair_icon = read_local_image(&icon_path).ok();
+    let icon_menu_item = IconMenuItem::with_id(
+        app_handle,
+        pair_address,
+        pair_label,
+        true,
+        pair_icon,
+        None::<&str>,
+    )?;
+
+    Ok(icon_menu_item)
+}
 
 pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Portfolio
@@ -76,33 +110,25 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
         .collect();
     let _ = menu.insert_items(&token_refs, 0);
 
-    // Pair
-    let pairs = [
-        token_registry
-            .get_by_symbol(&TokenSymbol::JLP)
-            .expect("Not exist")
-            .clone(),
-        token_registry
-            .get_by_symbol(&TokenSymbol::SOL)
-            .expect("Not exist")
-            .clone(),
-    ];
-    let pair_symbol = format!("{}_{}", pairs[0].symbol, pairs[1].symbol);
-    let pair_address = format!("{}_{}", pairs[0].address, pairs[1].address);
-    let pair_label = format!("{}/{}", pairs[0].symbol, pairs[1].symbol);
-    let icon_path = format!("./tokens/{}.png", pair_symbol);
-    let pair_icon = read_local_image(&icon_path).ok();
-    let pair_menu_item = IconMenuItem::with_id(
-        app_handle,
-        pair_address,
-        pair_label,
-        true,
-        pair_icon,
-        None::<&str>,
+    // Pair JLP_SOL
+    #[allow(non_snake_case)]
+    let JLP_SOL = get_menu_pair_item(
+        &app_handle,
+        &token_registry,
+        &TokenSymbol::JLP,
+        &TokenSymbol::SOL,
+    )?;
+    #[allow(non_snake_case)]
+    let laineSOL_SOL = get_menu_pair_item(
+        &app_handle,
+        &token_registry,
+        &TokenSymbol::laineSOL,
+        &TokenSymbol::SOL,
     )?;
     let _ = menu.insert_items(
         &[
-            &pair_menu_item as &dyn IsMenuItem<tauri::Wry>,
+            &JLP_SOL as &dyn IsMenuItem<tauri::Wry>,
+            &laineSOL_SOL as &dyn IsMenuItem<tauri::Wry>,
             &PredefinedMenuItem::separator(app_handle)?,
         ],
         0,
