@@ -38,8 +38,8 @@ cargo tauri dev
 ## TODO
 
 - [SUGGESTION] The price `JLP/SOL` will be stable at 1% range for 3 days ahead, estimated 2 `SOL` profit, consider open the pool.
-- [SUGGESTION] The price `SOL` will be down, consider rebalance the pool to the left.
-- [SUGGESTION] The price `SOL` will be up more than 10%, consider withdraw and long.
+- [SUGGESTION] The price `JLP ⟢ SOL` will move 1.5% to the right, consider rebalance the pool to the right.
+- [SUGGESTION] The price `SOL +10%` will be up more than 10%, consider withdraw and long.
 - [SUGGESTION] The price `JLP` will be down, consider shot for 1 day, estimated 2 `SOL` profit.
 - [SUGGESTION] The price `JLP` will be up, consider long for 1 day, estimated 2 `SOL` profit.
 - [SUGGESTION] The price `JLP/SOL` is at the bottom, consider DCA 3 times for the next 12 hours.
