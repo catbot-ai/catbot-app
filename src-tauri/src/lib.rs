@@ -92,6 +92,13 @@ pub fn run() {
 
             let tokens = app_state.selected_tokens.lock().unwrap().clone();
 
+            let tray_menu = app_state
+                .tray_menu
+                .lock()
+                .unwrap()
+                .clone()
+                .expect("Tray not initialized");
+
             // Price effect
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
@@ -99,8 +106,8 @@ pub fn run() {
                     let _ = price_receiver.changed().await;
                     let price_info_map = price_receiver.borrow_and_update();
 
+                    // Update tray
                     let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
-
                     let is_pair = tokens.len() == 2;
                     let maybe_price_info = if is_pair {
                         let pair_address = format!("{}_{}", tokens[0].address, tokens[1].address);
@@ -114,21 +121,45 @@ pub fn run() {
                             // Update view
                             let _ = tray_icon.set_title(Some(format_price(price)));
 
-                            // Notifications
-                            price_targets.iter().for_each(|price_target| {
-                                // Payload
-                                if price_watches.contains(&price_target.token_or_pair_symbol)
-                                    && (price_target.price - price).abs() < 0.1f64
-                                {
-                                    // TODO: Add to notify list
-                                    // TODO: Mark as notified by remove from price_targets
-                                }
-                            });
+                            // // Notifications
+                            // price_targets.iter().for_each(|price_target| {
+                            //     // Payload
+                            //     if price_watches.contains(&price_target.token_or_pair_symbol)
+                            //         && (price_target.price - price).abs() < 0.1f64
+                            //     {
+                            //         // TODO: Add to notify list
+                            //         // TODO: Mark as notified by remove from price_targets
+                            //     }
+                            // });
                         } else if price_info.retry_count > 0 {
                             // Update view
                             let _ = tray_icon.set_title(Some("…".to_owned()));
                         }
                     }
+
+                    // Update menu if opened
+                    // TODO: Tray is open? Get all prices? Get pair symbol and icon?
+                    let items = tray_menu.items().unwrap();
+                    items.iter().for_each(|item| {
+                        let id = item.id().0.clone();
+                        println!("id:{}", id.clone());
+                        if let Some(price_info) = price_info_map.get(&id) {
+                            println!("price_info:{:?}", price_info);
+                            if let Some(item) = item.as_icon_menuitem() {
+                                let token = token_registry
+                                    .get_by_address(id.as_str())
+                                    .expect("Invalid token address");
+
+                                if let Some(price) = price_info.price {
+                                    let text = format!("{} {}", token.symbol, format_price(price));
+                                    let _ = item.set_text(text);
+                                } else if price_info.retry_count > 0 {
+                                    let text = format!("{} …", token.symbol);
+                                    let _ = item.set_text(text);
+                                }
+                            }
+                        };
+                    });
                 }
             });
 
