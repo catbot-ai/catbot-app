@@ -37,6 +37,12 @@ cargo tauri dev
 
 ## TODO
 
+- [SUGGESTION] The price `JLP/SOL` will be stable at 1% range for 3 days ahead, estimated 2 `SOL` profit, consider open the pool.
+- [SUGGESTION] The price `SOL` will be down, consider rebalance the pool to the left.
+- [SUGGESTION] The price `SOL` will be up more than 10%, consider withdraw and long.
+- [SUGGESTION] The price `JLP` will be down, consider shot for 1 day, estimated 2 `SOL` profit.
+- [SUGGESTION] The price `JLP` will be up, consider long for 1 day, estimated 2 `SOL` profit.
+- [SUGGESTION] The price `JLP/SOL` is at the bottom, consider DCA 3 times for the next 12 hours.
 - [MENU] Update price to all token in menu when display.
 - [PRICE] Better use quoted price?
 - [MENU] Can switch price e.g. `JLP/SOL`, `SOL/JLP`.
@@ -76,3 +82,4 @@ cargo tauri dev
 - Get `SOL/JLP` history positions info: [get_all_nft_and_position_by_owner](https://github.com/raydium-io/raydium-clmm/blob/master/client/src/main.rs#L261C4-L261C37)
 - Get Technical Analysis: [https://github.com/00x4/m4rs]
 - Plot Graph with [plotters](https://github.com/plotters-rs/plotters)
+- Support more [verified token](https://api.jup.ag/tokens/v1/tagged/verified)
