@@ -18,14 +18,20 @@ pub struct Token {
 #[derive(Debug, Default, Clone)]
 pub struct TokenRegistry {
     pub tokens: Vec<Token>,
+    pub stable_tokens: Vec<Token>,
 }
 
 impl TokenRegistry {
     pub fn new() -> Self {
         let file_path = "./tokens/default.json";
-        let raw_tokens = Self::load_tokens(file_path).expect("Missing json");
+        let stable_file_path = "./tokens/stable.json";
+        let tokens = Self::load_tokens(file_path).expect("Missing json");
+        let stable_tokens = Self::load_stable_tokens(stable_file_path).expect("Missing json");
 
-        Self::parse(raw_tokens).expect("Invalid json")
+        TokenRegistry {
+            tokens,
+            stable_tokens,
+        }
     }
 
     fn load_tokens(file_path: &str) -> anyhow::Result<Vec<Token>> {
@@ -36,8 +42,12 @@ impl TokenRegistry {
         Ok(tokens)
     }
 
-    pub fn parse(tokens: Vec<Token>) -> anyhow::Result<Self> {
-        Ok(TokenRegistry { tokens })
+    fn load_stable_tokens(file_path: &str) -> anyhow::Result<Vec<Token>> {
+        let file = File::open(file_path).context("Failed to open token file")?;
+        let reader = BufReader::new(file);
+        let stable_tokens = serde_json::from_reader(reader)?;
+
+        Ok(stable_tokens)
     }
 
     pub fn get_by_address(&self, address: &str) -> Option<&Token> {
@@ -46,10 +56,6 @@ impl TokenRegistry {
 
     pub fn get_by_symbol(&self, symbol: &TokenSymbol) -> Option<&Token> {
         self.tokens.iter().find(|token| token.symbol == *symbol)
-    }
-
-    pub fn get_tokens() -> Vec<Token> {
-        TokenRegistry::new().tokens
     }
 }
 
@@ -71,16 +77,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_tokens() {
-        let tokens = TokenRegistry::get_tokens();
-        println!("{:#?}", tokens);
-        assert!(!tokens.is_empty());
-    }
-
-    #[test]
     fn test_tokens() {
         let registry = TokenRegistry::new();
-        let tokens = registry.tokens;
-        assert!(!tokens.is_empty());
+        assert!(!registry.tokens.is_empty());
+        assert!(!registry.stable_tokens.is_empty());
     }
 }
