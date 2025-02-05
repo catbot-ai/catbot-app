@@ -38,6 +38,8 @@ cargo tauri dev
 ## TODO
 
 - [MENU] Update price to all token in menu when display.
+- [PRICE] Better use quoted price?
+- [MENU] Can switch price e.g. `JLP/SOL`, `SOL/JLP`.
 - [MENU] Add indicator ↗︎↗︎↗︎, ↑↓↘︎↴, ⥂⥄+−⦧⦦⟡⟢⟣⫠⫠⫟.
 - [FORECAST] Add 1 day forecast from historical data.
 - [HOLD] Holder will get top most perf model. stake `JLP`, system get 57% yield.
