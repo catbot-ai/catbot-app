@@ -12,13 +12,14 @@ use feeder::PriceInfo;
 use jup::{format_price, TokenSymbol};
 use runner::run_loop;
 use tauri::{
-    tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl, WebviewWindowBuilder,
+    menu::Menu, tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl,
+    WebviewWindowBuilder,
 };
 use token_registry::{Token, TokenRegistry};
 use tokio::sync::watch;
 use tray::setup_tray;
 
-use std::sync::Mutex;
+use std::{collections::HashMap, sync::Mutex};
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -30,6 +31,7 @@ pub struct PriceTarget {
 #[derive(Default)]
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
+    tray_menu: Mutex<Option<Menu<tauri::Wry>>>,
     selected_tokens: Mutex<Vec<Token>>,
     token_sender: Mutex<Option<watch::Sender<Vec<Token>>>>,
     token_registry: Mutex<TokenRegistry>,
@@ -47,10 +49,11 @@ pub fn run() {
         .setup(|app| {
             let token_registry = TokenRegistry::new();
             let app_state = app.state::<AppState>();
-            *app_state.token_registry.lock().unwrap() = token_registry;
+            *app_state.token_registry.lock().unwrap() = token_registry.clone();
 
-            let tray_id = setup_tray(app.handle()).expect("Expect tray_id");
+            let (tray_id, tray_menu) = setup_tray(app.handle()).expect("Expect tray_id");
             *app_state.tray_id.lock().unwrap() = Some(tray_id.clone());
+            *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
 
             let (token_sender, token_receiver) = watch::channel(vec![TokenRegistry::new()
                 .get_by_symbol(&TokenSymbol::SOL)
@@ -58,8 +61,16 @@ pub fn run() {
                 .clone()]);
             *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
-            let (price_sender, price_receiver) = watch::channel::<PriceInfo>(PriceInfo::default());
+            let (price_sender, price_receiver) =
+                watch::channel::<HashMap<String, PriceInfo>>(Default::default());
             let app_handle = app.handle().clone();
+
+            // Default to SOL
+            let selected_token = token_registry
+                .get_by_symbol(&TokenSymbol::SOL)
+                .expect("Invalid token")
+                .clone();
+            *app_state.selected_tokens.lock().unwrap() = vec![selected_token];
 
             // Test
             let sol_symbol = TokenSymbol::SOL.to_string();
@@ -79,33 +90,44 @@ pub fn run() {
             let price_watches = vec![sol_symbol, pair_symbol];
             *app_state.price_watches.lock().unwrap() = price_watches.clone();
 
+            let tokens = app_state.selected_tokens.lock().unwrap().clone();
+
             // Price effect
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
                 loop {
                     let _ = price_receiver.changed().await;
-                    let price_info = *price_receiver.borrow_and_update();
+                    let price_info_map = price_receiver.borrow_and_update();
 
                     let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
 
-                    let price = price_info.price;
-                    if let Some(price) = price {
-                        // Update view
-                        let _ = tray_icon.set_title(Some(format_price(price)));
+                    let is_pair = tokens.len() == 2;
+                    let maybe_price_info = if is_pair {
+                        let pair_address = format!("{}_{}", tokens[0].address, tokens[1].address);
+                        price_info_map.get(&pair_address)
+                    } else {
+                        price_info_map.get(&tokens[0].address)
+                    };
 
-                        // Notifications
-                        price_targets.iter().for_each(|price_target| {
-                            // Payload
-                            if price_watches.contains(&price_target.token_or_pair_symbol)
-                                && (price_target.price - price).abs() < 0.1f64
-                            {
-                                // TODO: Add to notify list
-                                // TODO: Mark as notified by remove from price_targets
-                            }
-                        });
-                    } else if price_info.retry_count > 0 {
-                        // Update view
-                        let _ = tray_icon.set_title(Some("…".to_owned()));
+                    if let Some(price_info) = maybe_price_info {
+                        if let Some(price) = price_info.price {
+                            // Update view
+                            let _ = tray_icon.set_title(Some(format_price(price)));
+
+                            // Notifications
+                            price_targets.iter().for_each(|price_target| {
+                                // Payload
+                                if price_watches.contains(&price_target.token_or_pair_symbol)
+                                    && (price_target.price - price).abs() < 0.1f64
+                                {
+                                    // TODO: Add to notify list
+                                    // TODO: Mark as notified by remove from price_targets
+                                }
+                            });
+                        } else if price_info.retry_count > 0 {
+                            // Update view
+                            let _ = tray_icon.set_title(Some("…".to_owned()));
+                        }
                     }
                 }
             });

@@ -39,7 +39,7 @@ fn get_menu_pair_item(
     Ok(icon_menu_item)
 }
 
-pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
+pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<(TrayIconId, Menu<tauri::Wry>)> {
     // Portfolio
     let icon = read_local_image("../assets/jup-portfolio.png").ok();
     let portfolio_i = IconMenuItem::with_id(
@@ -113,14 +113,14 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
     // Pair JLP_SOL
     #[allow(non_snake_case)]
     let JLP_SOL = get_menu_pair_item(
-        &app_handle,
+        app_handle,
         &token_registry,
         &TokenSymbol::JLP,
         &TokenSymbol::SOL,
     )?;
     #[allow(non_snake_case)]
     let laineSOL_SOL = get_menu_pair_item(
-        &app_handle,
+        app_handle,
         &token_registry,
         &TokenSymbol::laineSOL,
         &TokenSymbol::SOL,
@@ -150,5 +150,5 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<TrayIconId> {
         tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
     });
 
-    Ok(tray_id)
+    Ok((tray_id, menu))
 }

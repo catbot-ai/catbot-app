@@ -64,6 +64,38 @@ pub async fn fetch_price(address: &str) -> Result<f64> {
         .and_then(|data| data.price.parse::<f64>().map_err(|e| anyhow!(e)))
 }
 
+pub async fn fetch_many_prices(addresses: &[&str]) -> Result<HashMap<String, f64>> {
+    // Deduplicate addresses to avoid redundant API calls
+    let unique_addresses: Vec<&str> = {
+        let mut set = std::collections::HashSet::new();
+        addresses
+            .iter()
+            .filter(|&&addr| set.insert(addr))
+            .cloned()
+            .collect()
+    };
+
+    // Construct the URL with comma-separated addresses
+    let params = unique_addresses.join(",");
+    let url = format!("{}?ids={}", JUP_API, params);
+    let response = reqwest::get(&url).await?.json::<PriceResponse>().await?;
+
+    let mut result = HashMap::new();
+    for address in unique_addresses {
+        let token_data = response
+            .data
+            .get(address)
+            .ok_or_else(|| anyhow!("Token {} not found", address))?;
+        let price = token_data
+            .price
+            .parse::<f64>()
+            .map_err(|e| anyhow!("Failed to parse price for {}: {}", address, e))?;
+        result.insert(address.to_string(), price);
+    }
+
+    Ok(result)
+}
+
 pub async fn fetch_pair_price(base: &str, vs: &str) -> Result<f64> {
     let url = format!("{JUP_API}?ids={}&vsToken={}", base, vs);
     let response = reqwest::get(&url).await?.json::<PriceResponse>().await?;
@@ -84,7 +116,7 @@ pub fn format_price_result(result: Result<f64>) -> Option<String> {
 
 pub fn format_price(price: f64) -> String {
     let price_str = price.to_string();
-    format!("${}", &price_str[..5.min(price_str.len())])
+    format!("${}", &price_str[..7.min(price_str.len())])
 }
 
 pub async fn fetch_price_and_format(tokens: Vec<Token>) -> Option<String> {
@@ -94,4 +126,12 @@ pub async fn fetch_price_and_format(tokens: Vec<Token>) -> Option<String> {
     } else {
         format_price_result(fetch_pair_price(&tokens[0].address, &tokens[1].address).await)
     }
+}
+
+pub async fn fetch_many_price_and_format(tokens: Vec<Token>) -> Option<Vec<String>> {
+    let addresses: Vec<&str> = tokens.iter().map(|token| token.address.as_str()).collect();
+    let prices_result = fetch_many_prices(&addresses).await;
+    prices_result
+        .ok()
+        .map(|prices| prices.into_values().map(format_price).collect::<Vec<_>>())
 }

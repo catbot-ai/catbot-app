@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 
 use tokio::sync::watch;
@@ -10,7 +12,7 @@ use crate::token_registry::Token;
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 pub async fn run_loop(
-    price_sender: watch::Sender<PriceInfo>,
+    price_sender: watch::Sender<HashMap<String, PriceInfo>>,
     token_receiver: watch::Receiver<Vec<Token>>,
 ) -> Result<()> {
     let mut tokens = token_receiver.borrow().clone();
@@ -36,21 +38,31 @@ pub async fn run_loop(
         );
 
         if !is_pair {
-            match fetch_price(&tokens[0].address).await {
+            let mut price_map = HashMap::new();
+            let address = tokens[0].address.clone();
+            match fetch_price(&address).await {
                 Ok(price) => {
                     retry_count = 0; // Reset retry counter on success
-                    price_sender.send(PriceInfo {
-                        price: Some(price),
-                        retry_count,
-                    })?;
+                    price_map.insert(
+                        address,
+                        PriceInfo {
+                            price: Some(price),
+                            retry_count,
+                        },
+                    );
+                    price_sender.send(price_map)?;
                 }
                 Err(e) => {
                     retry_count += 1;
                     println!("Price fetch failed (attempt {}): {}", retry_count, e);
-                    price_sender.send(PriceInfo {
-                        price: None,
-                        retry_count,
-                    })?;
+                    price_map.insert(
+                        address,
+                        PriceInfo {
+                            price: None,
+                            retry_count,
+                        },
+                    );
+                    price_sender.send(price_map)?;
 
                     // Exponential backoff up to 5 minutes
                     let backoff = Duration::from_secs(30).mul_f32(2f32.powi(retry_count - 1));
@@ -59,21 +71,32 @@ pub async fn run_loop(
                 }
             }
         } else {
+            let address = format!("{}_{}", tokens[0].address, tokens[1].address);
+            let mut price_map = HashMap::new();
+
             match fetch_pair_price(&tokens[0].address, &tokens[1].address).await {
                 Ok(price) => {
                     retry_count = 0; // Reset retry counter on success
-                    price_sender.send(PriceInfo {
-                        price: Some(price),
-                        retry_count,
-                    })?;
+                    price_map.insert(
+                        address,
+                        PriceInfo {
+                            price: Some(price),
+                            retry_count,
+                        },
+                    );
+                    price_sender.send(price_map)?;
                 }
                 Err(e) => {
                     retry_count += 1;
                     println!("Price fetch failed (attempt {}): {}", retry_count, e);
-                    price_sender.send(PriceInfo {
-                        price: None,
-                        retry_count,
-                    })?;
+                    price_map.insert(
+                        address,
+                        PriceInfo {
+                            price: None,
+                            retry_count,
+                        },
+                    );
+                    price_sender.send(price_map)?;
 
                     // Exponential backoff up to 5 minutes
                     let backoff = Duration::from_secs(30).mul_f32(2f32.powi(retry_count - 1));
@@ -81,7 +104,7 @@ pub async fn run_loop(
                     continue;
                 }
             }
-        }
+        };
 
         // Wait for next poll
         sleep(POLL_INTERVAL).await;

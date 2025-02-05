@@ -60,5 +60,16 @@ pub async fn update_token_and_price(
     let price = fetch_price_and_format(tokens).await;
     let _ = tray_icon.set_title(price);
 
+    // let tray_menu = state
+    //     .tray_menu
+    //     .lock()
+    //     .unwrap()
+    //     .clone()
+    //     .ok_or("Tray not initialized".to_string())?;
+
+    // let items = tray_menu.items().unwrap();
+    // let foo = items.first().unwrap();
+    // println!("foo:{:?}", foo.id());
+
     Ok(())
 }
