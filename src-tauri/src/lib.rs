@@ -7,10 +7,14 @@ pub mod runner;
 pub mod token_registry;
 pub mod tray;
 
+use chrono::Local;
 use commands::core::{greet, update_token_and_price};
 use feeder::PriceInfo;
 use jup::{format_price, TokenSymbol};
+use log::{info, LevelFilter};
 use runner::run_loop;
+use std::io::Write;
+
 use tauri::{
     menu::Menu, tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl,
     WebviewWindowBuilder,
@@ -42,6 +46,19 @@ pub struct AppState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    env_logger::Builder::new()
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "{} {}: {}",
+                record.level(),
+                Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                record.args()
+            )
+        })
+        .filter(None, LevelFilter::Info)
+        .init();
+
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
@@ -142,14 +159,13 @@ pub fn run() {
                     let items = tray_menu.items().unwrap();
                     items.iter().for_each(|item| {
                         let id = item.id().0.clone();
-                        println!("id:{}", id.clone());
                         if let Some(price_info) = price_info_map.get(&id) {
-                            println!("price_info:{:?}", price_info);
                             if let Some(item) = item.as_icon_menuitem() {
                                 let token = token_registry
                                     .get_by_address(id.as_str())
                                     .expect("Invalid token address");
 
+                                info!("set_text: {:#?}", price_info);
                                 if let Some(price) = price_info.price {
                                     let text = format!("{} {}", token.symbol, format_price(price));
                                     let _ = item.set_text(text);

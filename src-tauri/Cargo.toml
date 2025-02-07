@@ -30,6 +30,9 @@ strum_macros = "0.26"
 tokio = { version = "1.43.0", features = ["sync", "rt-multi-thread"] }
 tauri-plugin-notification = "2.2.1"
 image = "0.25.5"
+log = "0.4.25"
+chrono = "0.4.39"
+env_logger = "0.11.6"
 
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["full"] }

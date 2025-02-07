@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use log::info;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -54,8 +55,12 @@ struct PriceResponse {
 const JUP_API: &str = "https://api.jup.ag/price/v2";
 
 pub async fn fetch_price(address: &str) -> Result<f64> {
+    info!("fetch_price: {:#?}", address);
+
     let url = format!("{JUP_API}?ids={}", address);
     let response = reqwest::get(&url).await?.json::<PriceResponse>().await?;
+
+    info!("response: {:#?}", response);
 
     response
         .data

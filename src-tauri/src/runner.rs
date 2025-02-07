@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
+use log::info;
 use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
@@ -28,7 +29,7 @@ pub async fn run_loop(
         // Fetch price with retry logic
         let is_pair = tokens.len() == 2;
 
-        println!(
+        info!(
             "Price fetch: {}",
             tokens
                 .iter()
