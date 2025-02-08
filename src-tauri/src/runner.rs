@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use log::info;
+use log::{info, warn};
 use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
@@ -55,7 +55,7 @@ pub async fn run_loop(
                 }
                 Err(e) => {
                     retry_count += 1;
-                    println!("Price fetch failed (attempt {}): {}", retry_count, e);
+                    warn!("Price fetch failed (attempt {}): {}", retry_count, e);
                     price_map.insert(
                         address,
                         PriceInfo {
