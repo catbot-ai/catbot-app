@@ -4,7 +4,10 @@ use std::collections::HashMap;
 use strum::AsRefStr;
 use strum_macros::{Display, EnumString};
 
-use crate::{fetcher::fetch_with_retry, token_registry::Token};
+use crate::{
+    fetcher::{Fetcher, RetrySettings},
+    token_registry::Token,
+};
 
 #[derive(AsRefStr, Display, EnumString, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TokenAddress {
@@ -52,62 +55,90 @@ pub struct PriceResponse {
 
 const JUP_API: &str = "https://api.jup.ag/price/v2";
 
-// Single token price
-pub async fn fetch_price(address: &str) -> Result<f64> {
-    let url = format!("{JUP_API}?ids={}", address);
-    fetch_with_retry(&url, |response: PriceResponse| {
-        response
-            .data
-            .get(address)
-            .ok_or_else(|| anyhow!("Token {} not found", address))
-            .and_then(|data| {
-                data.price
-                    .parse()
-                    .map_err(|e| anyhow!("Parse error: {}", e))
-            })
-    })
-    .await
+/// A dedicated struct for fetching prices.
+pub struct PriceFetcher {
+    fetcher: Fetcher,
 }
 
-// Token pair price
-pub async fn fetch_pair_price(base: &str, vs: &str) -> Result<f64> {
-    let url = format!("{JUP_API}?ids={}&vsToken={}", base, vs);
-    fetch_with_retry(&url, |response: PriceResponse| {
-        response
-            .data
-            .get(base)
-            .ok_or_else(|| anyhow!("Base token {} not found", base))
-            .and_then(|data| {
-                data.price
-                    .parse()
-                    .map_err(|e| anyhow!("Parse error: {}", e))
-            })
-    })
-    .await
-}
+impl PriceFetcher {
+    /// Creates a new `PriceFetcher` with default settings.
+    pub fn new() -> Self {
+        Self {
+            fetcher: Fetcher::new(),
+        }
+    }
 
-// Multiple token prices
-pub async fn fetch_many_prices(addresses: &[&str]) -> Result<HashMap<String, f64>> {
-    let unique_addresses: Vec<&str> = addresses.to_vec();
-    let params = unique_addresses.join(",");
-    let url = format!("{JUP_API}?ids={}", params);
+    /// Creates a new `PriceFetcher` with custom settings.
+    pub fn with_settings(settings: RetrySettings) -> Self {
+        Self {
+            fetcher: Fetcher::with_settings(settings),
+        }
+    }
 
-    fetch_with_retry(&url, |response: PriceResponse| {
-        unique_addresses
-            .iter()
-            .map(|&addr| {
-                let price = response
+    /// Fetches the price of a single token.
+    pub async fn fetch_price(&self, address: &str) -> Result<f64> {
+        let url = format!("{JUP_API}?ids={}", address);
+        self.fetch_price_internal(&url).await.and_then(|mut map| {
+            map.remove(address)
+                .ok_or_else(|| anyhow!("Token {} not found", address))
+        })
+    }
+
+    /// Fetches the price of a token pair.
+    pub async fn fetch_pair_price(&self, base: &str, vs: &str) -> Result<f64> {
+        let url = format!("{JUP_API}?ids={}&vsToken={}", base, vs);
+        self.fetch_price_internal(&url).await.and_then(|mut map| {
+            map.remove(base)
+                .ok_or_else(|| anyhow!("Base token {} not found", base))
+        })
+    }
+
+    /// Fetches prices for multiple tokens.
+    pub async fn fetch_many_prices(&self, addresses: &[&str]) -> Result<HashMap<String, f64>> {
+        let params = addresses.join(",");
+        let url = format!("{JUP_API}?ids={}", params);
+        self.fetch_price_internal(&url).await
+    }
+
+    /// Shared logic for fetching prices.
+    async fn fetch_price_internal(&self, url: &str) -> Result<HashMap<String, f64>> {
+        self.fetcher
+            .fetch_with_retry(url, |response: PriceResponse| {
+                response
                     .data
-                    .get(addr)
-                    .ok_or_else(|| anyhow!("Token {} not found", addr))?
-                    .price
-                    .parse()
-                    .map_err(|e| anyhow!("Parse error for {}: {}", addr, e))?;
-                Ok((addr.to_string(), price))
+                    .iter()
+                    .map(|(address, data)| {
+                        data.price
+                            .parse::<f64>()
+                            .map(|price| (address.clone(), price))
+                            .map_err(|e| anyhow!("Failed to parse price for {}: {}", address, e))
+                    })
+                    .collect()
             })
-            .collect()
-    })
-    .await
+            .await
+    }
+
+    /// Fetches and formats the price for a single token or a token pair.
+    pub async fn fetch_price_and_format(&self, tokens: Vec<Token>) -> Option<String> {
+        let is_pair = tokens.len() == 2;
+        if !is_pair {
+            format_price_result(self.fetch_price(&tokens[0].address).await)
+        } else {
+            format_price_result(
+                self.fetch_pair_price(&tokens[0].address, &tokens[1].address)
+                    .await,
+            )
+        }
+    }
+
+    /// Fetches and formats prices for multiple tokens.
+    pub async fn fetch_many_price_and_format(&self, tokens: Vec<Token>) -> Option<Vec<String>> {
+        let addresses: Vec<&str> = tokens.iter().map(|token| token.address.as_str()).collect();
+        let prices_result = self.fetch_many_prices(&addresses).await;
+        prices_result
+            .ok()
+            .map(|prices| prices.into_values().map(format_price).collect::<Vec<_>>())
+    }
 }
 
 /// Formats a price result into a user-friendly string.
@@ -122,23 +153,4 @@ pub fn format_price_result(result: Result<f64>) -> Option<String> {
 pub fn format_price(price: f64) -> String {
     let price_str = price.to_string();
     format!("${}", &price_str[..7.min(price_str.len())])
-}
-
-/// Fetches and formats the price for a single token or a token pair.
-pub async fn fetch_price_and_format(tokens: Vec<Token>) -> Option<String> {
-    let is_pair = tokens.len() == 2;
-    if !is_pair {
-        format_price_result(fetch_price(&tokens[0].address).await)
-    } else {
-        format_price_result(fetch_pair_price(&tokens[0].address, &tokens[1].address).await)
-    }
-}
-
-/// Fetches and formats prices for multiple tokens.
-pub async fn fetch_many_price_and_format(tokens: Vec<Token>) -> Option<Vec<String>> {
-    let addresses: Vec<&str> = tokens.iter().map(|token| token.address.as_str()).collect();
-    let prices_result = fetch_many_prices(&addresses).await;
-    prices_result
-        .ok()
-        .map(|prices| prices.into_values().map(format_price).collect::<Vec<_>>())
 }

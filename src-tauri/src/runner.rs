@@ -7,7 +7,7 @@ use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
 use crate::feeder::PriceInfo;
-use crate::jup::{fetch_pair_price, fetch_price};
+use crate::jup::PriceFetcher;
 use crate::token_registry::Token;
 
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
@@ -18,6 +18,7 @@ pub async fn run_loop(
 ) -> Result<()> {
     let mut tokens = token_receiver.borrow().clone();
     let mut retry_count = 0;
+    let price_fetcher = PriceFetcher::new();
 
     loop {
         // Check for token changes
@@ -41,7 +42,7 @@ pub async fn run_loop(
         if !is_pair {
             let mut price_map = HashMap::new();
             let address = tokens[0].address.clone();
-            match fetch_price(&address).await {
+            match price_fetcher.fetch_price(&address).await {
                 Ok(price) => {
                     retry_count = 0; // Reset retry counter on success
                     price_map.insert(
@@ -75,7 +76,10 @@ pub async fn run_loop(
             let address = format!("{}_{}", tokens[0].address, tokens[1].address);
             let mut price_map = HashMap::new();
 
-            match fetch_pair_price(&tokens[0].address, &tokens[1].address).await {
+            match price_fetcher
+                .fetch_pair_price(&tokens[0].address, &tokens[1].address)
+                .await
+            {
                 Ok(price) => {
                     retry_count = 0; // Reset retry counter on success
                     price_map.insert(

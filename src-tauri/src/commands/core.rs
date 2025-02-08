@@ -1,5 +1,5 @@
 use crate::assets::read_local_image;
-use crate::jup::fetch_price_and_format;
+use crate::jup::PriceFetcher;
 use crate::token_registry::Token;
 use crate::AppState;
 use tauri::Manager;
@@ -57,7 +57,8 @@ pub async fn update_token_and_price(
     tray_icon.set_title(Some("…")).map_err(|e| e.to_string())?;
 
     // Fetch price
-    let price = fetch_price_and_format(tokens).await;
+    let price_fetcher = PriceFetcher::new();
+    let price = price_fetcher.fetch_price_and_format(tokens).await;
     let _ = tray_icon.set_title(price);
 
     // let tray_menu = state
