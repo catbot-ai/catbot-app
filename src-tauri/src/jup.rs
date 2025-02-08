@@ -1,13 +1,10 @@
 use anyhow::{anyhow, Result};
-use log::{info, warn};
-use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use strum::AsRefStr;
 use strum_macros::{Display, EnumString};
-use tokio::time::{timeout, Duration};
 
-use crate::token_registry::Token;
+use crate::{fetcher::fetch_with_retry, token_registry::Token};
 
 #[derive(AsRefStr, Display, EnumString, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TokenAddress {
@@ -48,154 +45,69 @@ struct TokenData {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct PriceResponse {
+pub struct PriceResponse {
     data: HashMap<String, TokenData>,
     time_taken: f64,
 }
 
 const JUP_API: &str = "https://api.jup.ag/price/v2";
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10); // Timeout for API requests
-const MAX_RETRIES: usize = 3; // Maximum number of retries for failed requests
 
-/// Helper function to calculate exponential backoff delay.
-fn exponential_backoff(retries: u32) -> Duration {
-    Duration::from_secs(2u64.pow(retries))
-}
-
-/// Fetches the price of a single token with retry logic and timeout.
+// Single token price
 pub async fn fetch_price(address: &str) -> Result<f64> {
-    info!("fetch_price: {:#?}", address);
-
     let url = format!("{JUP_API}?ids={}", address);
-    let mut retries = 0;
-
-    loop {
-        match timeout(REQUEST_TIMEOUT, reqwest::get(&url)).await {
-            Ok(response) => {
-                let response = response?;
-                let price_response = response.json::<PriceResponse>().await?;
-
-                if let Some(token_data) = price_response.data.get(address) {
-                    return token_data
-                        .price
-                        .parse::<f64>()
-                        .map_err(|e| anyhow!("Failed to parse price: {}", e));
-                } else {
-                    return Err(anyhow!("Token {} not found", address));
-                }
-            }
-            Err(e) => {
-                retries += 1;
-                if retries >= MAX_RETRIES {
-                    return Err(anyhow!(
-                        "Request timed out after {} retries: {}",
-                        retries,
-                        e
-                    ));
-                }
-                warn!("Request failed (attempt {}): {}", retries, e);
-
-                // Use exponential backoff
-                let delay = exponential_backoff(retries as u32);
-                tokio::time::sleep(delay).await;
-            }
-        }
-    }
+    fetch_with_retry(&url, |response: PriceResponse| {
+        response
+            .data
+            .get(address)
+            .ok_or_else(|| anyhow!("Token {} not found", address))
+            .and_then(|data| {
+                data.price
+                    .parse()
+                    .map_err(|e| anyhow!("Parse error: {}", e))
+            })
+    })
+    .await
 }
 
-/// Fetches prices for multiple tokens with retry logic and timeout.
-pub async fn fetch_many_prices(addresses: &[&str]) -> Result<HashMap<String, f64>> {
-    // Deduplicate addresses to avoid redundant API calls
-    let unique_addresses: Vec<&str> = {
-        let mut set = std::collections::HashSet::new();
-        addresses
-            .iter()
-            .filter(|&&addr| set.insert(addr))
-            .cloned()
-            .collect()
-    };
-
-    // Construct the URL with comma-separated addresses
-    let params = unique_addresses.join(",");
-    let url = format!("{}?ids={}", JUP_API, params);
-    let mut retries = 0;
-
-    loop {
-        match timeout(REQUEST_TIMEOUT, reqwest::get(&url)).await {
-            Ok(response) => {
-                let response = response?;
-                let price_response = response.json::<PriceResponse>().await?;
-
-                let mut result = HashMap::new();
-                for address in unique_addresses.iter() {
-                    if let Some(token_data) = price_response.data.get(*address) {
-                        let price = token_data
-                            .price
-                            .parse::<f64>()
-                            .map_err(|e| anyhow!("Failed to parse price for {}: {}", address, e))?;
-                        result.insert((*address).to_string(), price);
-                    } else {
-                        return Err(anyhow!("Token {} not found", address));
-                    }
-                }
-                return Ok(result);
-            }
-            Err(e) => {
-                retries += 1;
-                if retries >= MAX_RETRIES {
-                    return Err(anyhow!(
-                        "Request timed out after {} retries: {}",
-                        retries,
-                        e
-                    ));
-                }
-                warn!("Request failed (attempt {}): {}", retries, e);
-
-                // Use exponential backoff
-                let delay = exponential_backoff(retries as u32);
-                tokio::time::sleep(delay).await;
-            }
-        }
-    }
-}
-
-/// Fetches the price of a token pair with retry logic and timeout.
+// Token pair price
 pub async fn fetch_pair_price(base: &str, vs: &str) -> Result<f64> {
     let url = format!("{JUP_API}?ids={}&vsToken={}", base, vs);
-    let mut retries = 0;
+    fetch_with_retry(&url, |response: PriceResponse| {
+        response
+            .data
+            .get(base)
+            .ok_or_else(|| anyhow!("Base token {} not found", base))
+            .and_then(|data| {
+                data.price
+                    .parse()
+                    .map_err(|e| anyhow!("Parse error: {}", e))
+            })
+    })
+    .await
+}
 
-    loop {
-        match timeout(REQUEST_TIMEOUT, reqwest::get(&url)).await {
-            Ok(response) => {
-                let response = response?;
-                let price_response = response.json::<PriceResponse>().await?;
+// Multiple token prices
+pub async fn fetch_many_prices(addresses: &[&str]) -> Result<HashMap<String, f64>> {
+    let unique_addresses: Vec<&str> = addresses.to_vec();
+    let params = unique_addresses.join(",");
+    let url = format!("{JUP_API}?ids={}", params);
 
-                if let Some(token_data) = price_response.data.get(base) {
-                    return token_data
-                        .price
-                        .parse::<f64>()
-                        .map_err(|e| anyhow!("Failed to parse price: {}", e));
-                } else {
-                    return Err(anyhow!("Base token {} not found", base));
-                }
-            }
-            Err(e) => {
-                retries += 1;
-                if retries >= MAX_RETRIES {
-                    return Err(anyhow!(
-                        "Request timed out after {} retries: {}",
-                        retries,
-                        e
-                    ));
-                }
-                warn!("Request failed (attempt {}): {}", retries, e);
-
-                // Use exponential backoff
-                let delay = exponential_backoff(retries as u32);
-                tokio::time::sleep(delay).await;
-            }
-        }
-    }
+    fetch_with_retry(&url, |response: PriceResponse| {
+        unique_addresses
+            .iter()
+            .map(|&addr| {
+                let price = response
+                    .data
+                    .get(addr)
+                    .ok_or_else(|| anyhow!("Token {} not found", addr))?
+                    .price
+                    .parse()
+                    .map_err(|e| anyhow!("Parse error for {}: {}", addr, e))?;
+                Ok((addr.to_string(), price))
+            })
+            .collect()
+    })
+    .await
 }
 
 /// Formats a price result into a user-friendly string.
