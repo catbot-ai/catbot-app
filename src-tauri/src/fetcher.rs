@@ -51,6 +51,12 @@ pub struct Fetcher {
     settings: RetrySettings,
 }
 
+impl Default for Fetcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Fetcher {
     pub fn new() -> Self {
         Self {
