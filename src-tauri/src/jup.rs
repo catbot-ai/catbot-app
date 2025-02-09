@@ -6,6 +6,7 @@ use strum_macros::{Display, EnumString};
 
 use crate::{
     fetcher::{Fetcher, RetrySettings},
+    formatter::{format_price, format_price_result},
     token_registry::Token,
 };
 
@@ -58,6 +59,14 @@ const JUP_API: &str = "https://api.jup.ag/price/v2";
 /// A dedicated struct for fetching prices.
 pub struct PriceFetcher {
     fetcher: Fetcher,
+}
+
+impl Default for PriceFetcher {
+    fn default() -> Self {
+        Self {
+            fetcher: Fetcher::new(),
+        }
+    }
 }
 
 impl PriceFetcher {
@@ -139,18 +148,4 @@ impl PriceFetcher {
             .ok()
             .map(|prices| prices.into_values().map(format_price).collect::<Vec<_>>())
     }
-}
-
-/// Formats a price result into a user-friendly string.
-pub fn format_price_result(result: Result<f64>) -> Option<String> {
-    result
-        .ok()
-        .map(format_price)
-        .or_else(|| Some("…".to_owned()))
-}
-
-/// Formats a price value into a user-friendly string.
-pub fn format_price(price: f64) -> String {
-    let price_str = price.to_string();
-    format!("${}", &price_str[..7.min(price_str.len())])
 }

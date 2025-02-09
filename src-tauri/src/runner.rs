@@ -6,14 +6,16 @@ use log::{info, warn};
 use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
-use crate::feeder::PriceInfo;
+use crate::feeder::{
+    PairOrTokenAddress, PairOrTokenPriceInfo, PairPriceInfo, PriceInfo, TokenPriceInfo,
+};
 use crate::jup::PriceFetcher;
 use crate::token_registry::Token;
 
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 pub async fn run_loop(
-    price_sender: watch::Sender<HashMap<String, PriceInfo>>,
+    price_sender: watch::Sender<HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>>,
     token_receiver: watch::Receiver<Vec<Token>>,
 ) -> Result<()> {
     let mut tokens = token_receiver.borrow().clone();
@@ -41,16 +43,19 @@ pub async fn run_loop(
 
         if !is_pair {
             let mut price_map = HashMap::new();
-            let address = tokens[0].address.clone();
+            let address: PairOrTokenAddress = tokens[0].address.clone() as PairOrTokenAddress;
             match price_fetcher.fetch_price(&address).await {
                 Ok(price) => {
                     retry_count = 0; // Reset retry counter on success
                     price_map.insert(
                         address,
-                        PriceInfo {
-                            price: Some(price),
-                            retry_count,
-                        },
+                        PairOrTokenPriceInfo::Token(TokenPriceInfo {
+                            token: tokens[0].clone(),
+                            price_info: PriceInfo {
+                                price: Some(price),
+                                retry_count,
+                            },
+                        }),
                     );
                     price_sender.send(price_map)?;
                 }
@@ -59,10 +64,13 @@ pub async fn run_loop(
                     warn!("Price fetch failed (attempt {}): {}", retry_count, e);
                     price_map.insert(
                         address,
-                        PriceInfo {
-                            price: None,
-                            retry_count,
-                        },
+                        PairOrTokenPriceInfo::Token(TokenPriceInfo {
+                            token: tokens[0].clone(),
+                            price_info: PriceInfo {
+                                price: None,
+                                retry_count,
+                            },
+                        }),
                     );
                     price_sender.send(price_map)?;
 
@@ -73,7 +81,8 @@ pub async fn run_loop(
                 }
             }
         } else {
-            let address = format!("{}_{}", tokens[0].address, tokens[1].address);
+            let address: PairOrTokenAddress =
+                format!("{}_{}", tokens[0].address, tokens[1].address) as PairOrTokenAddress;
             let mut price_map = HashMap::new();
 
             match price_fetcher
@@ -84,10 +93,14 @@ pub async fn run_loop(
                     retry_count = 0; // Reset retry counter on success
                     price_map.insert(
                         address,
-                        PriceInfo {
-                            price: Some(price),
-                            retry_count,
-                        },
+                        PairOrTokenPriceInfo::Pair(PairPriceInfo {
+                            token_a: tokens[0].clone(),
+                            token_b: tokens[1].clone(),
+                            price_info: PriceInfo {
+                                price: Some(price),
+                                retry_count,
+                            },
+                        }),
                     );
                     price_sender.send(price_map)?;
                 }
@@ -96,10 +109,14 @@ pub async fn run_loop(
                     println!("Price fetch failed (attempt {}): {}", retry_count, e);
                     price_map.insert(
                         address,
-                        PriceInfo {
-                            price: None,
-                            retry_count,
-                        },
+                        PairOrTokenPriceInfo::Pair(PairPriceInfo {
+                            token_a: tokens[0].clone(),
+                            token_b: tokens[1].clone(),
+                            price_info: PriceInfo {
+                                price: None,
+                                retry_count,
+                            },
+                        }),
                     );
                     price_sender.send(price_map)?;
 

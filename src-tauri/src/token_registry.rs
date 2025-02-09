@@ -71,6 +71,18 @@ impl TokenRegistry {
 
         Ok(tokens)
     }
+
+    pub fn get_tokens_from_pair_address(&self, address: &str) -> anyhow::Result<Vec<Token>> {
+        let tokens = if address.contains("_") {
+            self.get_by_pair_address(address).expect("Invalid address")
+        } else if let Some(token) = self.get_by_address(address) {
+            vec![token.clone()]
+        } else {
+            vec![]
+        };
+
+        Ok(tokens)
+    }
 }
 
 #[cfg(test)]
