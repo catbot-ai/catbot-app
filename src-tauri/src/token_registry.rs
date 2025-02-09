@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 use serde::{Deserialize, Serialize};
 
 use std::fs::File;
@@ -56,6 +56,20 @@ impl TokenRegistry {
 
     pub fn get_by_symbol(&self, symbol: &TokenSymbol) -> Option<&Token> {
         self.tokens.iter().find(|token| token.symbol == *symbol)
+    }
+
+    pub fn get_by_pair_address(&self, address: &str) -> anyhow::Result<Vec<Token>> {
+        if !address.contains("_") {
+            bail!("Not pair address")
+        }
+
+        let pairs = address.split("_").collect::<Vec<_>>();
+        let tokens = vec![
+            self.get_by_address(pairs[0]).expect("Not exist").clone(),
+            self.get_by_address(pairs[1]).expect("Not exist").clone(),
+        ];
+
+        Ok(tokens)
     }
 }
 

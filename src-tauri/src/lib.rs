@@ -159,20 +159,39 @@ pub fn run() {
                     // TODO: Tray is open? Get all prices? Get pair symbol and icon?
                     let items = tray_menu.items().unwrap();
                     items.iter().for_each(|item| {
-                        let id = item.id().0.clone();
-                        if let Some(price_info) = price_info_map.get(&id) {
-                            if let Some(item) = item.as_icon_menuitem() {
-                                let token = token_registry
-                                    .get_by_address(id.as_str())
-                                    .expect("Invalid token address");
+                        let binding = item.id().0.clone();
+                        let id = binding.as_str();
 
-                                info!("set_text: {:#?}", price_info);
-                                if let Some(price) = price_info.price {
-                                    let text = format!("{} {}", token.symbol, format_price(price));
-                                    let _ = item.set_text(text);
-                                } else if price_info.retry_count > 0 {
-                                    let text = format!("{} …", token.symbol);
-                                    let _ = item.set_text(text);
+                        if let Some(price_info) = price_info_map.get(id) {
+                            if let Some(item) = item.as_icon_menuitem() {
+                                if id.contains("_") {
+                                    let pair =
+                                        token_registry.get_by_pair_address(id).expect("Invalid id");
+
+                                    if let Some(price) = price_info.price {
+                                        let pair_label =
+                                            format!("{}/{}", pair[0].symbol, pair[1].symbol);
+                                        let text =
+                                            format!("{} {}", pair_label, format_price(price));
+                                        let _ = item.set_text(text);
+                                    } else if price_info.retry_count > 0 {
+                                        let text = format!("{} {}", pair[0].symbol, pair[1].symbol);
+                                        let _ = item.set_text(text);
+                                    }
+                                } else {
+                                    let token = token_registry
+                                        .get_by_address(id)
+                                        .expect("Invalid token address");
+
+                                    info!("set_text: {:#?}", price_info);
+                                    if let Some(price) = price_info.price {
+                                        let text =
+                                            format!("{} {}", token.symbol, format_price(price));
+                                        let _ = item.set_text(text);
+                                    } else if price_info.retry_count > 0 {
+                                        let text = format!("{} …", token.symbol);
+                                        let _ = item.set_text(text);
+                                    }
                                 }
                             }
                         };
@@ -256,17 +275,7 @@ pub fn run() {
                 _ => {
                     let app_handle = app_handle.clone();
                     if id.contains("_") {
-                        let pairs = id.split("_").collect::<Vec<_>>();
-                        let tokens = vec![
-                            token_registry
-                                .get_by_address(pairs[0])
-                                .expect("Not exist")
-                                .clone(),
-                            token_registry
-                                .get_by_address(pairs[1])
-                                .expect("Not exist")
-                                .clone(),
-                        ];
+                        let tokens = token_registry.get_by_pair_address(id).expect("Invalid id");
 
                         tauri::async_runtime::spawn(async move {
                             // Spawn a new async task

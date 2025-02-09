@@ -12,7 +12,7 @@ fn get_menu_pair_item(
     token_a_symbol: &TokenSymbol,
     token_b_symbol: &TokenSymbol,
 ) -> anyhow::Result<IconMenuItem<tauri::Wry>> {
-    let pairs = [
+    let pair = [
         token_registry
             .get_by_symbol(token_a_symbol)
             .expect("Not exist")
@@ -22,9 +22,9 @@ fn get_menu_pair_item(
             .expect("Not exist")
             .clone(),
     ];
-    let pair_symbol = format!("{}_{}", pairs[0].symbol, pairs[1].symbol);
-    let pair_address = format!("{}_{}", pairs[0].address, pairs[1].address);
-    let pair_label = format!("{}/{}", pairs[0].symbol, pairs[1].symbol);
+    let pair_symbol = format!("{}_{}", pair[0].symbol, pair[1].symbol);
+    let pair_address = format!("{}_{}", pair[0].address, pair[1].address);
+    let pair_label = format!("{}/{}", pair[0].symbol, pair[1].symbol);
     let icon_path = format!("./tokens/{}.png", pair_symbol);
     let pair_icon = read_local_image(&icon_path).ok();
     let icon_menu_item = IconMenuItem::with_id(
