@@ -59,7 +59,13 @@ pub async fn update_token_and_price(
     // Fetch price
     let price_fetcher = PriceFetcher::new();
     let price = price_fetcher.fetch_price_and_format(tokens).await;
-    let _ = tray_icon.set_title(price);
+    let price_label = if is_pair {
+        price
+    } else {
+        Some(format!("${:?}", is_pair))
+    };
+
+    let _ = tray_icon.set_title(price_label);
 
     // let tray_menu = state
     //     .tray_menu
