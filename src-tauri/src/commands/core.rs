@@ -5,7 +5,7 @@ use crate::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use crate::jup::PriceFetcher;
 use crate::token_registry::{get_pair_ot_token_address_from_tokens, Token};
 use crate::{AppState, SelectedTokenOrPair};
-use log::{info, warn};
+use log::warn;
 use tauri::Manager;
 use tokio::sync::watch;
 
@@ -26,7 +26,6 @@ pub fn update_token_and_price(
 
     // Update tray icon and title
     let is_pair = selected_tokens.len() == 2;
-    info!("is_pair: {:?}", is_pair);
     let icon_path = if !is_pair {
         format!("./tokens/{}.png", selected_tokens[0].symbol)
     } else {
@@ -41,14 +40,8 @@ pub fn update_token_and_price(
     *state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
         address: selected_token_or_pair_address.clone(),
     };
-    info!(
-        "selected_token_or_pair_address: {:?}",
-        selected_token_or_pair_address
-    );
 
     let icon = read_local_image(&icon_path)?;
-
-    info!("icon_path: {:?}", icon_path);
 
     let tray_id = {
         state
@@ -58,8 +51,6 @@ pub fn update_token_and_price(
             .clone()
             .expect("Missing tray_id")
     };
-
-    info!("tray_id: {:?}", tray_id);
 
     let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
     tray_icon.set_icon(Some(icon))?;
@@ -87,7 +78,6 @@ pub fn update_token_and_price(
             .await
         {
             Some(prices_map) => {
-                info!("{:#?}", prices_map);
                 let _ = price_sender_clone.send(prices_map);
             }
             None => {
