@@ -18,6 +18,7 @@ pub struct Token {
 #[derive(Debug, Default, Clone)]
 pub struct TokenRegistry {
     pub tokens: Vec<Token>,
+    pub pairs: Vec<[Token; 2]>,
     pub stable_tokens: Vec<Token>,
 }
 
@@ -25,29 +26,47 @@ impl TokenRegistry {
     pub fn new() -> Self {
         let file_path = "./tokens/default.json";
         let stable_file_path = "./tokens/stable.json";
-        let tokens = Self::load_tokens(file_path).expect("Missing json");
-        let stable_tokens = Self::load_stable_tokens(stable_file_path).expect("Missing json");
+        let pairs_file_path = "./tokens/pairs.json";
+        let tokens = Self::load_tokens(file_path).expect("Missing default.json");
+        let stable_tokens = Self::load_tokens(stable_file_path).expect("Missing stable.json");
+        let pairs = Self::load_pairs(tokens.clone(), pairs_file_path).expect("Missing pairs.json");
 
         TokenRegistry {
             tokens,
+            pairs,
             stable_tokens,
         }
     }
 
     fn load_tokens(file_path: &str) -> anyhow::Result<Vec<Token>> {
-        let file = File::open(file_path).context("Failed to open token file")?;
+        let file = File::open(file_path).context("Failed to open file")?;
         let reader = BufReader::new(file);
         let tokens = serde_json::from_reader(reader)?;
 
         Ok(tokens)
     }
 
-    fn load_stable_tokens(file_path: &str) -> anyhow::Result<Vec<Token>> {
-        let file = File::open(file_path).context("Failed to open token file")?;
+    fn load_pairs(tokens: Vec<Token>, file_path: &str) -> anyhow::Result<Vec<[Token; 2]>> {
+        let file = File::open(file_path).context("Failed to open file")?;
         let reader = BufReader::new(file);
-        let stable_tokens = serde_json::from_reader(reader)?;
+        let pair_addresses: Vec<[String; 2]> = serde_json::from_reader(reader)?;
+        let pairs = pair_addresses
+            .into_iter()
+            .map(|pair_addresses| {
+                let token_a = tokens
+                    .iter()
+                    .find(|token| token.address == pair_addresses[0])
+                    .expect("Token not found");
+                let token_b = tokens
+                    .iter()
+                    .find(|token| token.address == pair_addresses[1])
+                    .expect("Token not found");
 
-        Ok(stable_tokens)
+                [token_a.clone(), token_b.clone()]
+            })
+            .collect::<Vec<_>>();
+
+        Ok(pairs)
     }
 
     pub fn get_by_address(&self, address: &str) -> Option<&Token> {
@@ -83,6 +102,16 @@ impl TokenRegistry {
 
         Ok(tokens)
     }
+}
+
+pub fn get_pair_ot_token_address_from_tokens(tokens: &Vec<Token>) -> anyhow::Result<String> {
+    let address = if tokens.len() == 1 {
+        tokens[0].address.clone()
+    } else {
+        format!("{}_{}", tokens[0].address, tokens[1].address)
+    };
+
+    Ok(address)
 }
 
 #[cfg(test)]

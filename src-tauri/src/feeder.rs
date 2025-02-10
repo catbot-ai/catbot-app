@@ -3,10 +3,11 @@ use crate::{
     token_registry::Token,
 };
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct PriceInfo {
     pub price: Option<f64>,
-    pub retry_count: i32,
+    pub formatted_price: String,
+    pub updated_at: u64,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -22,6 +23,7 @@ pub struct PairPriceInfo {
     pub price_info: PriceInfo,
 }
 
+#[derive(Debug, Clone)]
 pub enum PairOrTokenPriceInfo {
     Pair(PairPriceInfo),
     Token(TokenPriceInfo),

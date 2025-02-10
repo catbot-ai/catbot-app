@@ -5,12 +5,14 @@ use strum::AsRefStr;
 use strum_macros::{Display, EnumString};
 
 use crate::{
+    feeder::{PairOrTokenAddress, PairOrTokenPriceInfo, PriceInfo, TokenPriceInfo},
     fetcher::{Fetcher, RetrySettings},
     formatter::{format_price, format_price_result},
+    time::get_unix_timestamp,
     token_registry::Token,
 };
 
-#[derive(AsRefStr, Display, EnumString, Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(AsRefStr, Display, EnumString, Debug, Clone, Eq, PartialEq, Hash, Deserialize)]
 pub enum TokenAddress {
     Address(String),
 }
@@ -140,12 +142,63 @@ impl PriceFetcher {
         }
     }
 
-    /// Fetches and formats prices for multiple tokens.
-    pub async fn fetch_many_price_and_format(&self, tokens: Vec<Token>) -> Option<Vec<String>> {
-        let addresses: Vec<&str> = tokens.iter().map(|token| token.address.as_str()).collect();
-        let prices_result = self.fetch_many_prices(&addresses).await;
-        prices_result
-            .ok()
-            .map(|prices| prices.into_values().map(format_price).collect::<Vec<_>>())
+    pub async fn fetch_many_price_and_format(
+        &self,
+        single_tokens: Vec<Token>,
+        pairs: Vec<[Token; 2]>,
+    ) -> Option<HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>> {
+        let mut all_prices: HashMap<PairOrTokenAddress, PairOrTokenPriceInfo> = HashMap::new();
+
+        // Fetch single token prices
+        if !single_tokens.is_empty() {
+            let single_addresses: Vec<&str> =
+                single_tokens.iter().map(|t| t.address.as_str()).collect();
+
+            if let Ok(prices) = self.fetch_many_prices(&single_addresses).await {
+                for token in single_tokens {
+                    if let Some(price) = prices.get(token.address.as_str()) {
+                        all_prices.insert(
+                            token.address.clone() as PairOrTokenAddress,
+                            PairOrTokenPriceInfo::Token(TokenPriceInfo {
+                                token: token.clone(),
+                                price_info: PriceInfo {
+                                    price: Some(*price),
+                                    formatted_price: format_price(*price),
+                                    updated_at: get_unix_timestamp(),
+                                },
+                            }),
+                        );
+                    }
+                }
+            } else {
+                return None; // Or handle the error as needed
+            }
+        }
+
+        // Fetch pair prices
+        for [token_a, token_b] in pairs {
+            // Directly iterate over the pairs
+            if let Ok(price) = self
+                .fetch_pair_price(&token_a.address, &token_b.address)
+                .await
+            {
+                all_prices.insert(
+                    format!("{}_{}", token_a.address, token_b.address) as PairOrTokenAddress,
+                    PairOrTokenPriceInfo::Pair(crate::feeder::PairPriceInfo {
+                        token_a: token_a.clone(),
+                        token_b: token_b.clone(),
+                        price_info: PriceInfo {
+                            price: Some(price),
+                            formatted_price: format_price(price),
+                            updated_at: get_unix_timestamp(),
+                        },
+                    }),
+                );
+            } else {
+                return None; // Or handle the error as needed
+            }
+        }
+
+        Some(all_prices)
     }
 }

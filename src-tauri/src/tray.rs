@@ -110,29 +110,27 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<(TrayIconId, 
         .collect();
     let _ = menu.insert_items(&token_refs, 0);
 
-    // Pair JLP_SOL
-    #[allow(non_snake_case)]
-    let JLP_SOL = get_menu_pair_item(
-        app_handle,
-        &token_registry,
-        &TokenSymbol::JLP,
-        &TokenSymbol::SOL,
-    )?;
-    #[allow(non_snake_case)]
-    let laineSOL_SOL = get_menu_pair_item(
-        app_handle,
-        &token_registry,
-        &TokenSymbol::laineSOL,
-        &TokenSymbol::SOL,
-    )?;
-    let _ = menu.insert_items(
-        &[
-            &JLP_SOL as &dyn IsMenuItem<tauri::Wry>,
-            &laineSOL_SOL as &dyn IsMenuItem<tauri::Wry>,
-            &PredefinedMenuItem::separator(app_handle)?,
-        ],
-        0,
-    );
+    // Pairs
+    let _ = menu.insert_items(&[&PredefinedMenuItem::separator(app_handle)?], 0);
+    let items = token_registry
+        .pairs
+        .iter()
+        .map(|pair| {
+            get_menu_pair_item(
+                app_handle,
+                &token_registry,
+                &pair[0].symbol,
+                &pair[1].symbol,
+            )
+            .expect("Invalid menu item")
+        })
+        .collect::<Vec<_>>();
+
+    let item_refs = items
+        .iter()
+        .map(|item| item as &dyn IsMenuItem<tauri::Wry>)
+        .collect::<Vec<&dyn IsMenuItem<tauri::Wry>>>();
+    let _ = menu.insert_items(&item_refs, 0);
 
     let tray_icon = TrayIconBuilder::new()
         .icon(app_handle.default_window_icon().unwrap().clone())

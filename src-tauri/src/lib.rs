@@ -6,6 +6,7 @@ pub mod formatter;
 pub mod jup;
 pub mod ray;
 pub mod runner;
+pub mod time;
 pub mod token_registry;
 pub mod tray;
 
@@ -22,8 +23,8 @@ use tauri::{
     menu::Menu, tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl,
     WebviewWindowBuilder,
 };
-use token_registry::{Token, TokenRegistry};
-use tokio::sync::watch;
+use token_registry::{get_pair_ot_token_address_from_tokens, Token, TokenRegistry};
+use tokio::sync::watch::{self};
 use tray::setup_tray;
 
 use std::{collections::HashMap, sync::Mutex};
@@ -35,13 +36,21 @@ pub struct PriceTarget {
     price: f64,
 }
 
+#[allow(dead_code)]
+#[derive(Default, Clone, Debug)]
+pub struct SelectedTokenOrPair {
+    address: String,
+}
+
 #[derive(Default)]
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
     tray_menu: Mutex<Option<Menu<tauri::Wry>>>,
     selected_tokens: Mutex<Vec<Token>>,
+    selected_pair_or_token_address: Mutex<SelectedTokenOrPair>,
     token_sender: Mutex<Option<watch::Sender<Vec<Token>>>>,
     token_registry: Mutex<TokenRegistry>,
+    price_sender: Mutex<Option<watch::Sender<HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>>>>,
     is_quit: Mutex<bool>,
     price_targets: Mutex<Vec<PriceTarget>>,
     price_watches: Mutex<Vec<String>>,
@@ -77,13 +86,15 @@ pub fn run() {
 
             let (token_sender, token_receiver) = watch::channel(vec![TokenRegistry::new()
                 .get_by_symbol(&TokenSymbol::SOL)
-                .expect("Token ot exist")
+                .expect("Token not exist")
                 .clone()]);
             *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
             let (price_sender, price_receiver) = watch::channel::<
                 HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>,
             >(Default::default());
+            *app_state.price_sender.lock().unwrap() = Some(price_sender.clone());
+
             let app_handle = app.handle().clone();
 
             // Default to SOL
@@ -91,7 +102,13 @@ pub fn run() {
                 .get_by_symbol(&TokenSymbol::SOL)
                 .expect("Invalid token")
                 .clone();
-            *app_state.selected_tokens.lock().unwrap() = vec![selected_token];
+            *app_state.selected_tokens.lock().unwrap() = vec![selected_token.clone()];
+
+            let binding = selected_token.clone().address.clone();
+            let address = binding.as_str();
+            *app_state.selected_pair_or_token_address.lock().unwrap() = SelectedTokenOrPair {
+                address: address.to_string(),
+            };
 
             // Test
             let sol_symbol = TokenSymbol::SOL.to_string();
@@ -111,8 +128,6 @@ pub fn run() {
             let price_watches = vec![sol_symbol, pair_symbol];
             *app_state.price_watches.lock().unwrap() = price_watches.clone();
 
-            let selected_tokens = app_state.selected_tokens.lock().unwrap().clone();
-
             let tray_menu = app_state
                 .tray_menu
                 .lock()
@@ -122,32 +137,55 @@ pub fn run() {
 
             let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
 
+            let mut selected_pair_or_token_address = app_state
+                .selected_pair_or_token_address
+                .lock()
+                .unwrap()
+                .clone();
+
+            // Token effect
+            tauri::async_runtime::spawn(async move {
+                let mut token_receiver = token_receiver.clone();
+                let _ = token_receiver.changed().await;
+                let selected_tokens = token_receiver.borrow_and_update().clone();
+
+                let selected_pair_or_token_address_string =
+                    get_pair_ot_token_address_from_tokens(&selected_tokens)
+                        .expect("Invalid token address");
+
+                selected_pair_or_token_address.address =
+                    selected_pair_or_token_address_string.clone();
+            });
+
+            let app_handle = app.handle();
+            let app_handle = app_handle.clone();
+
             // Price effect
             tauri::async_runtime::spawn(async move {
                 let mut price_receiver = price_receiver.clone();
+                let tray_menu_clone = tray_menu.clone();
+
                 loop {
                     let _ = price_receiver.changed().await;
-                    let price_info_map = price_receiver.borrow_and_update();
+                    let price_info_map = price_receiver.borrow_and_update().clone();
 
                     // Update tray
-                    let is_pair = selected_tokens.len() == 2;
-                    let maybe_price_info = if is_pair {
-                        let pair_address = format!(
-                            "{}_{}",
-                            selected_tokens[0].address, selected_tokens[1].address
-                        );
-                        price_info_map.get(&pair_address)
-                    } else {
-                        price_info_map.get(&selected_tokens[0].address)
-                    };
+                    let app_state = app_handle.state::<AppState>();
+                    let selected_pair_or_token_address = app_state
+                        .selected_pair_or_token_address
+                        .lock()
+                        .unwrap()
+                        .clone();
 
+                    let maybe_price_info =
+                        price_info_map.get(&selected_pair_or_token_address.address);
                     if let Some(price_info) = maybe_price_info {
                         let (_label, formatted_price) = update_price_display(price_info);
                         let _ = tray_icon.set_title(Some(formatted_price));
                     }
 
                     // Update menu
-                    let items = tray_menu.items().unwrap();
+                    let items = tray_menu_clone.items().unwrap();
                     price_info_map.iter().for_each(|(k, v)| {
                         if let Some(item) = items
                             .iter()
@@ -175,7 +213,7 @@ pub fn run() {
             // .unwrap();
 
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = run_loop(price_sender, token_receiver).await {
+                if let Err(e) = run_loop(price_sender, &token_registry).await {
                     eprintln!("Price fetch error: {}", e);
                 }
             });
@@ -184,8 +222,8 @@ pub fn run() {
         })
         .on_menu_event(|app_handle, event| {
             let id = event.id.as_ref();
-            let state = app_handle.state::<AppState>();
-            let token_registry = state.token_registry.lock().unwrap();
+            let app_state = app_handle.state::<AppState>();
+            let token_registry = app_state.token_registry.lock().unwrap();
 
             match id {
                 "settings" => {
@@ -237,16 +275,13 @@ pub fn run() {
                 }
                 _ => {
                     let app_handle = app_handle.clone();
-                    let tokens = token_registry
+                    let selected_tokens = token_registry
                         .get_tokens_from_pair_address(id)
                         .expect("Invalid id");
 
-                    tauri::async_runtime::spawn(async move {
-                        // Spawn a new async task
-                        if let Err(e) = update_token_and_price(app_handle, tokens).await {
-                            eprintln!("Error updating token and price: {}", e);
-                        }
-                    });
+                    let price_sender = app_state.price_sender.lock().unwrap();
+                    let price_sender = price_sender.as_ref().expect("Price sender not initialized");
+                    let _ = update_token_and_price(app_handle, selected_tokens, price_sender);
                 }
             }
         })
