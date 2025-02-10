@@ -12,7 +12,7 @@ pub mod tray;
 
 use chrono::Local;
 use commands::core::{greet, update_token_and_price};
-use feeder::{PairOrTokenAddress, PairOrTokenPriceInfo};
+use feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use formatter::update_price_display;
 use jup::TokenSymbol;
 use log::LevelFilter;
@@ -47,10 +47,10 @@ pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
     tray_menu: Mutex<Option<Menu<tauri::Wry>>>,
     selected_tokens: Mutex<Vec<Token>>,
-    selected_pair_or_token_address: Mutex<SelectedTokenOrPair>,
+    selected_token_or_pair_address: Mutex<SelectedTokenOrPair>,
     token_sender: Mutex<Option<watch::Sender<Vec<Token>>>>,
     token_registry: Mutex<TokenRegistry>,
-    price_sender: Mutex<Option<watch::Sender<HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>>>>,
+    price_sender: Mutex<Option<watch::Sender<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>>>>,
     is_quit: Mutex<bool>,
     price_targets: Mutex<Vec<PriceTarget>>,
     price_watches: Mutex<Vec<String>>,
@@ -91,7 +91,7 @@ pub fn run() {
             *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
             let (price_sender, price_receiver) = watch::channel::<
-                HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>,
+                HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>,
             >(Default::default());
             *app_state.price_sender.lock().unwrap() = Some(price_sender.clone());
 
@@ -106,7 +106,7 @@ pub fn run() {
 
             let binding = selected_token.clone().address.clone();
             let address = binding.as_str();
-            *app_state.selected_pair_or_token_address.lock().unwrap() = SelectedTokenOrPair {
+            *app_state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
                 address: address.to_string(),
             };
 
@@ -137,8 +137,8 @@ pub fn run() {
 
             let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
 
-            let mut selected_pair_or_token_address = app_state
-                .selected_pair_or_token_address
+            let mut selected_token_or_pair_address = app_state
+                .selected_token_or_pair_address
                 .lock()
                 .unwrap()
                 .clone();
@@ -149,12 +149,12 @@ pub fn run() {
                 let _ = token_receiver.changed().await;
                 let selected_tokens = token_receiver.borrow_and_update().clone();
 
-                let selected_pair_or_token_address_string =
+                let selected_token_or_pair_address_string =
                     get_pair_ot_token_address_from_tokens(&selected_tokens)
                         .expect("Invalid token address");
 
-                selected_pair_or_token_address.address =
-                    selected_pair_or_token_address_string.clone();
+                selected_token_or_pair_address.address =
+                    selected_token_or_pair_address_string.clone();
             });
 
             let app_handle = app.handle();
@@ -171,14 +171,14 @@ pub fn run() {
 
                     // Update tray
                     let app_state = app_handle.state::<AppState>();
-                    let selected_pair_or_token_address = app_state
-                        .selected_pair_or_token_address
+                    let selected_token_or_pair_address = app_state
+                        .selected_token_or_pair_address
                         .lock()
                         .unwrap()
                         .clone();
 
                     let maybe_price_info =
-                        price_info_map.get(&selected_pair_or_token_address.address);
+                        price_info_map.get(&selected_token_or_pair_address.address);
                     if let Some(price_info) = maybe_price_info {
                         let (_label, formatted_price) = update_price_display(price_info);
                         let _ = tray_icon.set_title(Some(formatted_price));

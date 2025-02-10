@@ -5,7 +5,7 @@ use strum::AsRefStr;
 use strum_macros::{Display, EnumString};
 
 use crate::{
-    feeder::{PairOrTokenAddress, PairOrTokenPriceInfo, PriceInfo, TokenPriceInfo},
+    feeder::{PriceInfo, TokenOrPairAddress, TokenOrPairPriceInfo, TokenPriceInfo},
     fetcher::{Fetcher, RetrySettings},
     formatter::{format_price, format_price_result},
     time::get_unix_timestamp,
@@ -146,8 +146,8 @@ impl PriceFetcher {
         &self,
         single_tokens: Vec<Token>,
         pairs: Vec<[Token; 2]>,
-    ) -> Option<HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>> {
-        let mut all_prices: HashMap<PairOrTokenAddress, PairOrTokenPriceInfo> = HashMap::new();
+    ) -> Option<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>> {
+        let mut all_prices: HashMap<TokenOrPairAddress, TokenOrPairPriceInfo> = HashMap::new();
 
         // Fetch single token prices
         if !single_tokens.is_empty() {
@@ -158,8 +158,8 @@ impl PriceFetcher {
                 for token in single_tokens {
                     if let Some(price) = prices.get(token.address.as_str()) {
                         all_prices.insert(
-                            token.address.clone() as PairOrTokenAddress,
-                            PairOrTokenPriceInfo::Token(TokenPriceInfo {
+                            token.address.clone() as TokenOrPairAddress,
+                            TokenOrPairPriceInfo::Token(TokenPriceInfo {
                                 token: token.clone(),
                                 price_info: PriceInfo {
                                     price: Some(*price),
@@ -183,8 +183,8 @@ impl PriceFetcher {
                 .await
             {
                 all_prices.insert(
-                    format!("{}_{}", token_a.address, token_b.address) as PairOrTokenAddress,
-                    PairOrTokenPriceInfo::Pair(crate::feeder::PairPriceInfo {
+                    format!("{}_{}", token_a.address, token_b.address) as TokenOrPairAddress,
+                    TokenOrPairPriceInfo::Pair(crate::feeder::PairPriceInfo {
                         token_a: token_a.clone(),
                         token_b: token_b.clone(),
                         price_info: PriceInfo {

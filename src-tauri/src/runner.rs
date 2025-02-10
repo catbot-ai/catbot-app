@@ -4,14 +4,14 @@ use std::collections::HashMap;
 use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
-use crate::feeder::{PairOrTokenAddress, PairOrTokenPriceInfo};
+use crate::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use crate::jup::PriceFetcher;
 use crate::token_registry::TokenRegistry;
 
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 pub async fn run_loop(
-    price_sender: watch::Sender<HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>>,
+    price_sender: watch::Sender<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>>,
     // token_receiver: watch::Receiver<Vec<Token>>,
     token_registry: &TokenRegistry,
 ) -> Result<()> {

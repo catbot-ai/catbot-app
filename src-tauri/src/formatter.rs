@@ -1,8 +1,8 @@
-use crate::feeder::{PairOrTokenPriceInfo, PairPriceInfo, TokenPriceInfo};
+use crate::feeder::{TokenOrPairPriceInfo, PairPriceInfo, TokenPriceInfo};
 
-pub fn update_price_display(price_info: &PairOrTokenPriceInfo) -> (String, String) {
+pub fn update_price_display(price_info: &TokenOrPairPriceInfo) -> (String, String) {
     match price_info {
-        PairOrTokenPriceInfo::Pair(PairPriceInfo {
+        TokenOrPairPriceInfo::Pair(PairPriceInfo {
             token_a,
             token_b,
             price_info,
@@ -14,7 +14,7 @@ pub fn update_price_display(price_info: &PairOrTokenPriceInfo) -> (String, Strin
                 .unwrap_or("…".to_string());
             (label, formatted_price)
         }
-        PairOrTokenPriceInfo::Token(TokenPriceInfo { token, price_info }) => {
+        TokenOrPairPriceInfo::Token(TokenPriceInfo { token, price_info }) => {
             let label = token.symbol.to_string();
             let formatted_price = price_info
                 .price

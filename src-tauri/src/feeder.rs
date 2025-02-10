@@ -24,12 +24,12 @@ pub struct PairPriceInfo {
 }
 
 #[derive(Debug, Clone)]
-pub enum PairOrTokenPriceInfo {
+pub enum TokenOrPairPriceInfo {
     Pair(PairPriceInfo),
     Token(TokenPriceInfo),
 }
 
-pub type PairOrTokenAddress = String;
+pub type TokenOrPairAddress = String;
 
 pub async fn get_price_by_token_id(pool_id: PoolId) -> anyhow::Result<f64> {
     let pool_info = fetch_pool_info_by_id(pool_id).await?;

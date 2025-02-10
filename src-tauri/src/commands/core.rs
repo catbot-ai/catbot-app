@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::assets::read_local_image;
-use crate::feeder::{PairOrTokenAddress, PairOrTokenPriceInfo};
+use crate::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use crate::jup::PriceFetcher;
 use crate::token_registry::{get_pair_ot_token_address_from_tokens, Token};
 use crate::{AppState, SelectedTokenOrPair};
@@ -18,7 +18,7 @@ pub fn greet(name: &str) -> String {
 pub fn update_token_and_price(
     app_handle: tauri::AppHandle,
     selected_tokens: Vec<Token>,
-    price_sender: &watch::Sender<HashMap<PairOrTokenAddress, PairOrTokenPriceInfo>>,
+    price_sender: &watch::Sender<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>>,
 ) -> anyhow::Result<()> {
     // Update selected token
     let state = app_handle.state::<AppState>();
@@ -37,13 +37,13 @@ pub fn update_token_and_price(
         format!("./tokens/{}.png", pair_symbol)
     };
 
-    let selected_pair_or_token_address = get_pair_ot_token_address_from_tokens(&selected_tokens)?;
-    *state.selected_pair_or_token_address.lock().unwrap() = SelectedTokenOrPair {
-        address: selected_pair_or_token_address.clone(),
+    let selected_token_or_pair_address = get_pair_ot_token_address_from_tokens(&selected_tokens)?;
+    *state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
+        address: selected_token_or_pair_address.clone(),
     };
     info!(
-        "selected_pair_or_token_address: {:?}",
-        selected_pair_or_token_address
+        "selected_token_or_pair_address: {:?}",
+        selected_token_or_pair_address
     );
 
     let icon = read_local_image(&icon_path)?;
