@@ -25,8 +25,8 @@ serde_json = "1"
 reqwest = "0.12.12"
 anyhow = "1.0.95"
 wasm-timer = "0.2.5"
-strum = { version = "0.26", features = ["derive"] }
-strum_macros = "0.26"
+strum = { version = "0.27", features = ["derive"] }
+strum_macros = "0.27"
 tokio = { version = "1.43.0", features = ["sync", "rt-multi-thread"] }
 tauri-plugin-notification = "2.2.1"
 image = "0.25.5"
