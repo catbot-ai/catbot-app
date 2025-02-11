@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "hello-tauri",
+  "productName": "CatBoard",
   "version": "0.1.0",
-  "identifier": "com.hello-tauri.app",
+  "identifier": "com.catboard.app",
   "build": {
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "dx build --release",
