@@ -1,5 +1,6 @@
 pub mod assets;
 pub mod commands;
+// pub mod config;
 pub mod feeder;
 pub mod fetcher;
 pub mod formatter;
@@ -18,6 +19,7 @@ use jup::prices::TokenSymbol;
 use log::LevelFilter;
 use runner::run_loop;
 use std::io::Write;
+use tauri_plugin_fs::FsExt;
 
 use tauri::{
     menu::Menu, tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl,
@@ -54,6 +56,73 @@ pub struct AppState {
     is_quit: Mutex<bool>,
     price_targets: Mutex<Vec<PriceTarget>>,
     price_watches: Mutex<Vec<String>>,
+    current_public_key: Mutex<Option<String>>,
+}
+
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::Read;
+use tauri::AppHandle;
+
+// Define a struct to deserialize the YAML into
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Config {
+    app_name: String,
+    version: String,
+    settings: Settings,
+    wallets: Vec<Wallet>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Wallet {
+    name: String,
+    public_key: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Settings {
+    theme: String,
+    debug: bool,
+}
+
+// Tauri command to load the config
+#[tauri::command]
+fn load_config(app: AppHandle) -> Result<Config, String> {
+    // Get the app's data directory
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+
+    // Construct the path to config.yaml
+    let config_path = data_dir.join("config.yaml");
+
+    dbg!(format!("🔥 config_path: {:?}", config_path.clone()));
+
+    // Open and read the file
+    let mut file = File::open(&config_path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+
+    // Parse the YAML content into the Config struct
+    let config: Config =
+        serde_yaml::from_str(&contents).map_err(|e| format!("Failed to parse YAML: {}", e))?;
+
+    dbg!("Config loaded: {:?}", config.clone());
+    Ok(config)
+}
+
+fn initialize_config(app: AppHandle) {
+    match load_config(app.clone()) {
+        Ok(config) => {
+            let app_state = app.state::<AppState>();
+            *app_state.current_public_key.lock().unwrap() = config
+                .wallets
+                .first()
+                .map(|wallet| wallet.public_key.clone());
+        }
+        Err(e) => {
+            dbg!("Failed to load config: {}", e);
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -74,8 +143,18 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_fs::init())
         .manage(AppState::default())
         .setup(|app| {
+            // allowed the given directory
+            let scope = app.try_fs_scope().expect("Invalid scope.");
+            scope.allow_directory("./", false)?;
+            dbg!(scope.is_allowed("./"));
+
+            // Load config
+            let app_handle = app.app_handle();
+            initialize_config(app_handle.clone());
+
             let token_registry = TokenRegistry::new();
             let app_state = app.state::<AppState>();
             *app_state.token_registry.lock().unwrap() = token_registry.clone();
@@ -252,15 +331,23 @@ pub fn run() {
                     app_handle.exit(0);
                 }
                 "portfolio" => {
-                    let window = app_handle.get_webview_window("portfolio");
+                    let app_state = app_handle.state::<AppState>();
+                    let current_public_key = app_state.current_public_key.lock().unwrap();
+                    let url_string = match current_public_key.as_ref() {
+                        Some(public_key) => {
+                            format!("https://portfolio.jup.ag/portfolio/{public_key}")
+                        }
+                        None => "https://portfolio.jup.ag/".to_owned(),
+                    };
 
+                    let window = app_handle.get_webview_window("portfolio");
                     let window = match window {
                         Some(window) => window,
                         None => WebviewWindowBuilder::new(
                             app_handle,
                             "portfolio",
                             WebviewUrl::External(
-                                Url::parse("https://portfolio.jup.ag/").expect("Invalid url"),
+                                Url::parse(url_string.as_str()).expect("Invalid url"),
                             ),
                         )
                         .always_on_top(true)
@@ -285,7 +372,7 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![load_config, greet])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 

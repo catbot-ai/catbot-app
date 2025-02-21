@@ -37,6 +37,7 @@ cargo tauri dev
 
 ## TODO
 
+- [SYSTEM] Create config with wallet address.
 - [ETL] Get `JLP/SOL` quote data on `CloudRun`.
 - [ETL] Get `JLP/USDC` quote data on `CloudRun`.
 - [ETL] Get `SOL/USDC` quote data on `CloudRun`.
