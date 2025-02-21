@@ -108,7 +108,7 @@ pub fn get_token_logo_url_by_mint_address(mint_address: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{jup::TokenSymbol, ray};
+    use crate::{jup::prices::TokenSymbol, ray};
 
     use super::*;
 

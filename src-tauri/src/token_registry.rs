@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 
-use crate::jup::TokenSymbol;
+use crate::jup::prices::TokenSymbol;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]

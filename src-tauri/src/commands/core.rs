@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::assets::read_local_image;
 use crate::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
-use crate::jup::PriceFetcher;
+use crate::jup::prices::PriceFetcher;
 use crate::token_registry::{get_pair_ot_token_address_from_tokens, Token};
 use crate::{AppState, SelectedTokenOrPair};
 use log::warn;

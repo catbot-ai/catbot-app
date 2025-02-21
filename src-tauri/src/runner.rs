@@ -5,7 +5,7 @@ use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
 use crate::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
-use crate::jup::PriceFetcher;
+use crate::jup::prices::PriceFetcher;
 use crate::token_registry::TokenRegistry;
 
 const POLL_INTERVAL: Duration = Duration::from_secs(5);

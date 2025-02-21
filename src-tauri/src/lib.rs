@@ -14,7 +14,7 @@ use chrono::Local;
 use commands::core::{greet, update_token_and_price};
 use feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use formatter::update_price_display;
-use jup::TokenSymbol;
+use jup::prices::TokenSymbol;
 use log::LevelFilter;
 use runner::run_loop;
 use std::io::Write;
