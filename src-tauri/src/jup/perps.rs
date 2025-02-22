@@ -82,8 +82,9 @@ pub struct PositionPNL {
     pub pnl_usd: f64,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, EnumString, Display, PartialEq)] // Add strum attributes
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Serialize, Deserialize, Debug, EnumString, Display, PartialEq)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum Side {
     Long,
     Short,
