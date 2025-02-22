@@ -30,6 +30,12 @@ dx serve --port 1420
 cargo tauri dev
 ```
 
+## Release
+
+```
+./release.sh v0.2.0
+```
+
 ## Features
 
 - Display current token or pair price on MacOS tray with minimal resources used.
