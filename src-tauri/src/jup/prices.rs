@@ -40,6 +40,8 @@ pub enum TokenSymbol {
     USDC,
     #[allow(non_camel_case_types)]
     JupSOL,
+    #[allow(non_camel_case_types)]
+    SOL_PERPS,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

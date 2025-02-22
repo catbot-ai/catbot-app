@@ -84,15 +84,27 @@ impl TokenRegistry {
 
         let pairs = address.split("_").collect::<Vec<_>>();
         let tokens = vec![
-            self.get_by_address(pairs[0]).expect("Not exist").clone(),
-            self.get_by_address(pairs[1]).expect("Not exist").clone(),
+            self.get_by_address(pairs[0])
+                .unwrap_or_else(|| panic!("Not exist: {}", pairs[0]))
+                .clone(),
+            self.get_by_address(pairs[1])
+                .unwrap_or_else(|| panic!("Not exist: {}", pairs[1]))
+                .clone(),
         ];
 
         Ok(tokens)
     }
 
     pub fn get_tokens_from_pair_address(&self, address: &str) -> anyhow::Result<Vec<Token>> {
-        let tokens = if address.contains("_") {
+        let tokens = if address.starts_with("SOL_PERPS") {
+            // TODO: support more token?
+            vec![Token {
+                address: "So11111111111111111111111111111111111111112_PERPS".to_owned(),
+                symbol: TokenSymbol::SOL_PERPS,
+                name: address.to_owned(),
+                decimals: 9u8,
+            }]
+        } else if address.contains("_") {
             self.get_by_pair_address(address).expect("Invalid address")
         } else if let Some(token) = self.get_by_address(address) {
             vec![token.clone()]
@@ -104,7 +116,7 @@ impl TokenRegistry {
     }
 }
 
-pub fn get_pair_ot_token_address_from_tokens(tokens: &Vec<Token>) -> anyhow::Result<String> {
+pub fn get_pair_ot_token_address_from_tokens(tokens: &[Token]) -> anyhow::Result<String> {
     let address = if tokens.len() == 1 {
         tokens[0].address.clone()
     } else {

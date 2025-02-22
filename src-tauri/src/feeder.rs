@@ -23,10 +23,20 @@ pub struct PairPriceInfo {
     pub price_info: PriceInfo,
 }
 
+#[derive(Default, Debug, Clone)]
+pub struct PerpValueInfo {
+    // e.g. SOL_PERPS
+    pub id: String,
+    pub token: Token,
+    // TODO: we need better name, e.g. ValueUsdInfo.
+    pub pnl_after_fees_usd: PriceInfo,
+}
+
 #[derive(Debug, Clone)]
 pub enum TokenOrPairPriceInfo {
     Pair(PairPriceInfo),
     Token(TokenPriceInfo),
+    Perp(PerpValueInfo),
 }
 
 pub type TokenOrPairAddress = String;
