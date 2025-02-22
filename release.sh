@@ -40,7 +40,8 @@ fi
 
 # Update version in Cargo.toml
 echo "Updating Cargo.toml version to $CARGO_VERSION..."
-sed -i "s/version = \"[0-9]*\.[0-9]*\.[0-9]*\"/version = \"$CARGO_VERSION\"/" Cargo.toml
+# Use -i '' for macOS/BSD compatibility, no backup; GNU sed works with this too
+sed -i '' "s/version = \"[0-9]*\.[0-9]*\.[0-9]*\"/version = \"$CARGO_VERSION\"/" Cargo.toml
 
 # Verify the change
 if ! grep -q "version = \"$CARGO_VERSION\"" Cargo.toml; then
