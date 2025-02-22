@@ -169,7 +169,7 @@ pub fn run() {
                 .clone()]);
             *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
-            let (price_sender, price_receiver) = watch::channel::<
+            let (price_sender, mut price_receiver) = watch::channel::<
                 HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>,
             >(Default::default());
             *app_state.price_sender.lock().unwrap() = Some(price_sender.clone());
@@ -216,12 +216,6 @@ pub fn run() {
 
             let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
 
-            let mut selected_token_or_pair_address = app_state
-                .selected_token_or_pair_address
-                .lock()
-                .unwrap()
-                .clone();
-
             // Token effect
             tauri::async_runtime::spawn(async move {
                 let _ = token_receiver.changed().await;
@@ -230,6 +224,13 @@ pub fn run() {
                 let selected_token_or_pair_address_string =
                     get_pair_ot_token_address_from_tokens(&selected_tokens)
                         .expect("Invalid token address");
+
+                let app_state = app_handle.state::<AppState>();
+                let mut selected_token_or_pair_address = app_state
+                    .selected_token_or_pair_address
+                    .lock()
+                    .unwrap()
+                    .clone();
 
                 selected_token_or_pair_address.address =
                     selected_token_or_pair_address_string.clone();
@@ -240,7 +241,6 @@ pub fn run() {
 
             // Price effect
             tauri::async_runtime::spawn(async move {
-                let mut price_receiver = price_receiver.clone();
                 let tray_menu_clone = tray_menu.clone();
 
                 loop {
