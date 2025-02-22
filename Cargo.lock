@@ -585,7 +585,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "catbot-ui"
+name = "catbot-app"
 version = "0.1.0"
 dependencies = [
  "dioxus",
