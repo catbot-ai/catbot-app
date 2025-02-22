@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" height="64px" width="64px" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <bx:export>
+      <bx:file format="png" href="#object-0" excluded="true"/>
+      <bx:file format="png" href="#object-1" path="Untitled 2.png" excluded="true"/>
+      <bx:file format="png" href="#object-0" path="Untitled 3.png" excluded="true"/>
+      <bx:file format="png" href="#object-2" path="Untitled 4.png" excluded="true"/>
+      <bx:file format="png" path="jup-portfolio.png"/>
+      <bx:file format="png" href="#object-3" path="jup-portfolio.png" width="64" height="64"/>
+    </bx:export>
+  </defs>
+  <g id="object-3" transform="matrix(2.720625, 0, 0, 2.720625, -218.362793, -112.399887)" style="">
+    <ellipse style="fill: rgb(18, 29, 40);" cx="92.024" cy="53.076" rx="11.762" ry="11.762"/>
+    <path d="M 91.024 46.156 L 91.024 43.076 C 86.024 43.576 82.024 47.886 82.024 53.076 C 82.024 58.266 86.024 62.576 91.024 63.076 L 91.024 59.996 C 88.024 59.516 85.024 56.596 85.024 53.076 C 85.024 49.556 88.024 46.636 91.024 46.156" style="fill: rgb(26, 196, 225);" id="object-1"/>
+    <path d="M 93.024 59.996 L 93.024 63.076 C 98.024 62.606 101.554 59.076 102.024 54.076 L 98.994 54.076 C 98.564 57.076 96.024 59.566 93.024 59.996" style="fill: rgb(199, 242, 132);" id="object-0"/>
+    <path d="M 98.994 52.076 L 102.024 52.076 C 101.554 47.076 98.024 43.546 93.024 43.076 L 93.024 46.156 C 96.024 46.586 98.564 49.076 98.994 52.076" style="fill: rgb(145, 228, 160);" id="object-2"/>
+  </g>
+</svg>

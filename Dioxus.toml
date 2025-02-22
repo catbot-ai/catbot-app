@@ -1,24 +1,12 @@
 [application]
-
-# App (Project) Name
-name = "catboard-app"
+name = "catbot-ui"
+default_platform = "web"
+out_dir = "dist"
+asset_dir = "assets"
 
 [web.app]
+title = "CatBot"
 
-# HTML title tag content
-title = "catboard-app"
-
-# include `assets` in web platform
-[web.resource]
-
-# Additional CSS style files
-style = []
-
-# Additional JavaScript files
-script = []
-
-[web.resource.dev]
-
-# Javascript code file
-# serve: [dev-server] only
-script = []
+[web.watcher]
+reload_html = true
+watch_path = ["src", "assets"]
