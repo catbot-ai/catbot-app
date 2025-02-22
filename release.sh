@@ -40,7 +40,6 @@ fi
 
 # Update version in Cargo.toml
 echo "Updating Cargo.toml version to $CARGO_VERSION..."
-# Use -i '' for macOS/BSD compatibility, no backup; GNU sed works with this too
 sed -i '' "s/version = \"[0-9]*\.[0-9]*\.[0-9]*\"/version = \"$CARGO_VERSION\"/" Cargo.toml
 
 # Verify the change
@@ -49,9 +48,18 @@ if ! grep -q "version = \"$CARGO_VERSION\"" Cargo.toml; then
     exit 1
 fi
 
-# Commit the Cargo.toml change
-echo "Committing Cargo.toml update..."
+# Update Cargo.lock by running a cargo command (if Cargo.lock exists and is tracked)
+if [ -f "Cargo.lock" ] && git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1; then
+    echo "Updating Cargo.lock..."
+    cargo check  # This regenerates Cargo.lock based on the new version
+fi
+
+# Commit both Cargo.toml and Cargo.lock (if modified)
+echo "Committing Cargo.toml and Cargo.lock (if updated)..."
 git add Cargo.toml
+if [ -f "Cargo.lock" ] && [ -n "$(git status --porcelain Cargo.lock)" ]; then
+    git add Cargo.lock
+fi
 git commit -m "Bump version to $CARGO_VERSION for release"
 
 # Update local branches
