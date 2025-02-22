@@ -163,7 +163,7 @@ pub fn run() {
             *app_state.tray_id.lock().unwrap() = Some(tray_id.clone());
             *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
 
-            let (token_sender, token_receiver) = watch::channel(vec![TokenRegistry::new()
+            let (token_sender, mut token_receiver) = watch::channel(vec![TokenRegistry::new()
                 .get_by_symbol(&TokenSymbol::SOL)
                 .expect("Token not exist")
                 .clone()]);
@@ -224,7 +224,6 @@ pub fn run() {
 
             // Token effect
             tauri::async_runtime::spawn(async move {
-                let mut token_receiver = token_receiver.clone();
                 let _ = token_receiver.changed().await;
                 let selected_tokens = token_receiver.borrow_and_update().clone();
 
