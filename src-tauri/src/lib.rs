@@ -237,7 +237,7 @@ pub fn run() {
             });
 
             let app_handle = app.handle();
-            let app_handle = app_handle.clone();
+            let cloned_app_handle = app_handle.clone();
 
             // Price effect
             tauri::async_runtime::spawn(async move {
@@ -245,10 +245,10 @@ pub fn run() {
 
                 loop {
                     let _ = price_receiver.changed().await;
-                    let price_info_map = price_receiver.borrow_and_update().clone();
+                    let price_info_map = price_receiver.borrow().clone();
 
                     // Update tray
-                    let app_state = app_handle.state::<AppState>();
+                    let app_state = cloned_app_handle.state::<AppState>();
                     let selected_token_or_pair_address = app_state
                         .selected_token_or_pair_address
                         .lock()
@@ -257,21 +257,41 @@ pub fn run() {
 
                     let maybe_price_info =
                         price_info_map.get(&selected_token_or_pair_address.address);
+
                     if let Some(price_info) = maybe_price_info {
                         let (_label, formatted_price) = update_price_display(price_info);
+                        println!("_label:{:?}", _label);
                         let _ = tray_icon.set_title(Some(formatted_price));
                     }
 
                     // Update menu
                     let items = tray_menu_clone.items().unwrap();
-                    price_info_map.iter().for_each(|(k, v)| {
-                        if let Some(item) = items
-                            .iter()
-                            .find(|menu_item| menu_item.id().0.as_str() == k)
-                        {
-                            if let Some(item) = item.as_icon_menuitem() {
-                                let (_label, formatted_price) = update_price_display(v);
-                                let _ = item.set_text(formatted_price);
+                    price_info_map.iter().for_each(|(token_address, v)| {
+                        match v {
+                            TokenOrPairPriceInfo::Perp(perp_value_info) => {
+                                if let Some(item) = items
+                                    .iter()
+                                    // TODO: Use id for single and pair
+                                    .find(|menu_item| {
+                                        menu_item.id().0.as_str() == perp_value_info.id
+                                    })
+                                {
+                                    if let Some(item) = item.as_icon_menuitem() {
+                                        let (_label, formatted_price) = update_price_display(v);
+                                        let _ = item.set_text(formatted_price);
+                                    }
+                                }
+                            }
+                            _ => {
+                                if let Some(item) = items
+                                    .iter()
+                                    .find(|menu_item| menu_item.id().0.as_str() == token_address)
+                                {
+                                    if let Some(item) = item.as_icon_menuitem() {
+                                        let (_label, formatted_price) = update_price_display(v);
+                                        let _ = item.set_text(formatted_price);
+                                    }
+                                }
                             }
                         }
                     });
@@ -290,8 +310,22 @@ pub fn run() {
             // .show()
             // .unwrap();
 
+            // TODO: Update when wallet_address changed.
+            let maybe_wallet_address = app_state
+                .current_public_key
+                .lock()
+                .unwrap()
+                .clone()
+                .unwrap();
+
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = run_loop(price_sender, &token_registry).await {
+                if let Err(e) = run_loop(
+                    price_sender.clone(),
+                    &token_registry,
+                    Some(maybe_wallet_address.as_str()),
+                )
+                .await
+                {
                     eprintln!("Price fetch error: {}", e);
                 }
             });

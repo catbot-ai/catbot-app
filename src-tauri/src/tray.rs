@@ -24,7 +24,7 @@ fn get_menu_pair_item(
     ];
     let pair_symbol = format!("{}_{}", pair[0].symbol, pair[1].symbol);
     let pair_address = format!("{}_{}", pair[0].address, pair[1].address);
-    let pair_label = format!("{}/{}", pair[0].symbol, pair[1].symbol);
+    let pair_label = format!("{}⋯{}", pair[0].symbol, pair[1].symbol);
     let icon_path = format!("./tokens/{}.png", pair_symbol);
     let pair_icon = read_local_image(&icon_path).ok();
     let icon_menu_item = IconMenuItem::with_id(
@@ -46,6 +46,17 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<(TrayIconId, 
         app_handle,
         "portfolio",
         "JUP Portfolio",
+        true,
+        icon,
+        None::<&str>,
+    )?;
+
+    // Perps, TODO: support more tokens
+    let icon = read_local_image("./tokens/SOL_PERPS.png").ok();
+    let sol_perps_i = IconMenuItem::with_id(
+        app_handle,
+        "SOL_PERPS",
+        "SOL Perps",
         true,
         icon,
         None::<&str>,
@@ -95,6 +106,8 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<(TrayIconId, 
         &[
             &PredefinedMenuItem::separator(app_handle)?,
             &portfolio_i,
+            &PredefinedMenuItem::separator(app_handle)?,
+            &sol_perps_i,
             &PredefinedMenuItem::separator(app_handle)?,
             &settings_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,

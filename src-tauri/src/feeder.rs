@@ -25,6 +25,8 @@ pub struct PairPriceInfo {
 
 #[derive(Default, Debug, Clone)]
 pub struct PerpValueInfo {
+    // e.g. SOL_PERPS
+    pub id: String,
     pub token: Token,
     // TODO: we need better name, e.g. ValueUsdInfo.
     pub pnl_after_fees_usd: PriceInfo,

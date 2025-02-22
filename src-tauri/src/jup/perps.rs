@@ -72,6 +72,7 @@ pub struct TpslRequest {
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PositionPNLs {
     pub total_pnl_usd: f64,
+    pub total_pnl_percent: f64,
     pub position_pnls: Vec<PositionPNL>,
 }
 
@@ -80,6 +81,7 @@ pub struct PositionPNL {
     pub position_pubkey: String,
     pub side: Side,
     pub pnl_usd: f64,
+    pub pnl_percent: f64,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, EnumString, Display, PartialEq)]
@@ -128,6 +130,7 @@ impl PerpsFetcher {
     ) -> Result<PositionPNLs> {
         let positions_response = self.fetch_positions(wallet_address).await?;
         let mut total_pnl_usd = 0.0;
+        let mut total_pnl_percent = 0.0;
         let mut position_pnls: Vec<PositionPNL> = Vec::new();
 
         for position in positions_response.data_list {
@@ -137,16 +140,30 @@ impl PerpsFetcher {
                     position.pnl_after_fees_usd
                 )
             })?;
+
+            let pnl_percent = position
+                .pnl_change_pct_after_fees
+                .parse::<f64>()
+                .map_err(|_| {
+                    anyhow!(
+                        "Failed to parse pnl_change_pct_after_fees to f64: {}",
+                        position.pnl_change_pct_after_fees
+                    )
+                })?;
+
             total_pnl_usd += pnl_usd;
+            total_pnl_percent += pnl_percent;
             position_pnls.push(PositionPNL {
                 position_pubkey: position.position_pubkey.clone(),
                 side: position.side.clone(),
                 pnl_usd,
+                pnl_percent,
             });
         }
 
         Ok(PositionPNLs {
             total_pnl_usd,
+            total_pnl_percent,
             position_pnls,
         })
     }

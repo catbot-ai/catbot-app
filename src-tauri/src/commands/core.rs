@@ -73,7 +73,9 @@ pub fn update_token_and_price(
     };
 
     tauri::async_runtime::spawn(async move {
-        match PriceFetcher::new()
+        // TODO: perps is more complex, should we wait?
+        let price_fetcher = PriceFetcher::new();
+        match price_fetcher
             .fetch_many_price_and_format(single_tokens, pair_tokens)
             .await
         {
