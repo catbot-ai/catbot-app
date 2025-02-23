@@ -42,7 +42,7 @@ pub struct PoolData {
     pub farm_upcoming_count: u32,
     pub farm_ongoing_count: u32,
     pub farm_finished_count: u32,
-    pub config: Config,
+    pub settings: Settings,
     pub burn_percent: f64,
 }
 
@@ -76,7 +76,7 @@ pub struct TimeFrameData {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Config {
+pub struct Settings {
     pub id: String,
     pub index: u32,
     pub protocol_fee_rate: u32,

@@ -1,6 +1,6 @@
 pub mod assets;
 pub mod commands;
-// pub mod config;
+// pub mod settings;
 pub mod feeder;
 pub mod fetcher;
 pub mod formatter;
@@ -64,10 +64,7 @@ use tauri::AppHandle;
 
 // Define a struct to deserialize the YAML into
 #[derive(Debug, Serialize, Deserialize, Clone)]
-struct Config {
-    app_name: String,
-    version: String,
-    settings: Settings,
+struct Settings {
     wallets: Vec<Wallet>,
 }
 
@@ -77,48 +74,43 @@ struct Wallet {
     public_key: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct Settings {
-    theme: String,
-    debug: bool,
-}
-
-// Tauri command to load the config
+// Tauri command to load the settings
 #[tauri::command]
-fn load_config(app: AppHandle) -> Result<Config, String> {
+fn load_settings(app: AppHandle) -> Result<Settings, String> {
     // Get the app's data directory
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
-    // Construct the path to config.yaml
-    let config_path = data_dir.join("config.yaml");
+    // Construct the path to settings.yaml
+    let settings_path = data_dir.join("settings.yaml");
 
-    dbg!(format!("🔥 config_path: {:?}", config_path.clone()));
+    // e.g. /Users/katopz/Library/Application Support/com.catbot.app/settings.yaml
+    println!("🔥 settings_path: {:?}", settings_path.clone());
 
     // Open and read the file
-    let mut file = File::open(&config_path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let mut file = File::open(&settings_path).map_err(|e| format!("Failed to open file: {}", e))?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)
         .map_err(|e| format!("Failed to read file: {}", e))?;
 
-    // Parse the YAML content into the Config struct
-    let config: Config =
+    // Parse the YAML content into the Settings struct
+    let settings: Settings =
         serde_yaml::from_str(&contents).map_err(|e| format!("Failed to parse YAML: {}", e))?;
 
-    dbg!("Config loaded: {:?}", config.clone());
-    Ok(config)
+    dbg!("Settings loaded: {:?}", settings.clone());
+    Ok(settings)
 }
 
-fn initialize_config(app: AppHandle) {
-    match load_config(app.clone()) {
-        Ok(config) => {
+fn initialize_settings(app: AppHandle) {
+    match load_settings(app.clone()) {
+        Ok(settings) => {
             let app_state = app.state::<AppState>();
-            *app_state.current_public_key.lock().unwrap() = config
+            *app_state.current_public_key.lock().unwrap() = settings
                 .wallets
                 .first()
                 .map(|wallet| wallet.public_key.clone());
         }
         Err(e) => {
-            dbg!("Failed to load config: {}", e);
+            dbg!("Failed to load settings: {}", e);
         }
     }
 }
@@ -149,9 +141,9 @@ pub fn run() {
             scope.allow_directory("./", false)?;
             dbg!(scope.is_allowed("./"));
 
-            // Load config
+            // Load settings
             let app_handle = app.app_handle();
-            initialize_config(app_handle.clone());
+            initialize_settings(app_handle.clone());
 
             let token_registry = TokenRegistry::new();
             let app_state = app.state::<AppState>();
@@ -290,18 +282,13 @@ pub fn run() {
             // .unwrap();
 
             // TODO: Update when wallet_address changed.
-            let maybe_wallet_address = app_state
-                .current_public_key
-                .lock()
-                .unwrap()
-                .clone()
-                .unwrap();
+            let maybe_wallet_address = app_state.current_public_key.lock().unwrap().clone();
 
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = run_loop(
                     price_sender.clone(),
                     &token_registry,
-                    Some(maybe_wallet_address.as_str()),
+                    maybe_wallet_address.as_deref(),
                 )
                 .await
                 {
@@ -384,7 +371,7 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![load_config, greet])
+        .invoke_handler(tauri::generate_handler![load_settings, greet])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
