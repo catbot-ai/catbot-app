@@ -43,7 +43,9 @@ cargo tauri dev
 
 ## TODO
 
-- [SYSTEM] Create config with wallet address.
+- [Settings] Create settings with `wallet_address`.
+- [Settings] Load settings with `wallet_address`.
+- [Settings] Load settings with `recent_token_or_pair`.
 - [ETL] Get `JLP/SOL` quote data on `CloudRun`.
 - [ETL] Get `JLP/USDC` quote data on `CloudRun`.
 - [ETL] Get `SOL/USDC` quote data on `CloudRun`.
