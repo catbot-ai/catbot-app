@@ -54,8 +54,6 @@ pub struct AppState {
     token_registry: Mutex<TokenRegistry>,
     price_sender: Mutex<Option<watch::Sender<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>>>>,
     is_quit: Mutex<bool>,
-    price_targets: Mutex<Vec<PriceTarget>>,
-    price_watches: Mutex<Vec<String>>,
     current_public_key: Mutex<Option<String>>,
 }
 
@@ -189,24 +187,6 @@ pub fn run() {
                 address: address.to_string(),
             };
 
-            // Test
-            let sol_symbol = TokenSymbol::SOL.to_string();
-            let pair_symbol = format!("{}_{}", TokenSymbol::JLP, TokenSymbol::SOL);
-            let price_targets = vec![
-                PriceTarget {
-                    token_or_pair_symbol: sol_symbol.clone(),
-                    price: 200f64,
-                },
-                PriceTarget {
-                    token_or_pair_symbol: pair_symbol.clone(),
-                    price: 0.021f64,
-                },
-            ];
-            *app_state.price_targets.lock().unwrap() = price_targets.clone();
-
-            let price_watches = vec![sol_symbol, pair_symbol];
-            *app_state.price_watches.lock().unwrap() = price_watches.clone();
-
             let tray_menu = app_state
                 .tray_menu
                 .lock()
@@ -260,7 +240,6 @@ pub fn run() {
 
                     if let Some(price_info) = maybe_price_info {
                         let (_label, formatted_price) = update_price_display(price_info);
-                        println!("_label:{:?}", _label);
                         let _ = tray_icon.set_title(Some(formatted_price));
                     }
 
