@@ -29,9 +29,6 @@ pub fn load_settings(app: AppHandle) -> Result<Settings, String> {
     // Construct the path to settings.yaml
     let settings_path = data_dir.join("settings.yaml");
 
-    // e.g. /Users/katopz/Library/Application Support/com.catbot.app/settings.yaml
-    println!("🔥 settings_path: {:?}", settings_path.clone());
-
     // Open and read the file
     let mut file = File::open(&settings_path).map_err(|e| format!("Failed to open file: {}", e))?;
     let mut contents = String::new();
@@ -42,7 +39,6 @@ pub fn load_settings(app: AppHandle) -> Result<Settings, String> {
     let settings: Settings =
         serde_yaml::from_str(&contents).map_err(|e| format!("Failed to parse YAML: {}", e))?;
 
-    dbg!("Settings loaded: {:?}", settings.clone());
     Ok(settings)
 }
 
