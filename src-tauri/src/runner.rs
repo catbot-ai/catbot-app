@@ -80,7 +80,7 @@ pub async fn run_loop(
                     token: sol_token.clone(),
                     pnl_after_fees_usd: PriceInfo {
                         price: Some(price),
-                        formatted_price: format_price(price),
+                        ui_price: format_price(price),
                         updated_at: Utc::now().timestamp_millis() as u64,
                     },
                 });

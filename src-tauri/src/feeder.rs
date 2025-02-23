@@ -6,7 +6,7 @@ use crate::{
 #[derive(Default, Debug, Clone)]
 pub struct PriceInfo {
     pub price: Option<f64>,
-    pub formatted_price: String,
+    pub ui_price: String,
     pub updated_at: u64,
 }
 

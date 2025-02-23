@@ -14,7 +14,7 @@ pub mod tray;
 use chrono::Local;
 use commands::core::{greet, update_token_and_price};
 use feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
-use formatter::update_price_display;
+use formatter::get_label_and_ui_price;
 use jup::prices::TokenSymbol;
 use log::LevelFilter;
 use runner::run_loop;
@@ -229,8 +229,8 @@ pub fn run() {
                         price_info_map.get(&selected_token_or_pair_address.address);
 
                     if let Some(price_info) = maybe_price_info {
-                        let (_label, formatted_price) = update_price_display(price_info);
-                        let _ = tray_icon.set_title(Some(formatted_price));
+                        let (_label, ui_price) = get_label_and_ui_price(price_info);
+                        let _ = tray_icon.set_title(Some(ui_price));
                     }
 
                     // Update menu
@@ -246,8 +246,8 @@ pub fn run() {
                                     })
                                 {
                                     if let Some(item) = item.as_icon_menuitem() {
-                                        let (_label, formatted_price) = update_price_display(v);
-                                        let _ = item.set_text(formatted_price);
+                                        let (_label, ui_price) = get_label_and_ui_price(v);
+                                        let _ = item.set_text(ui_price);
                                     }
                                 }
                             }
@@ -257,8 +257,8 @@ pub fn run() {
                                     .find(|menu_item| menu_item.id().0.as_str() == token_address)
                                 {
                                     if let Some(item) = item.as_icon_menuitem() {
-                                        let (_label, formatted_price) = update_price_display(v);
-                                        let _ = item.set_text(formatted_price);
+                                        let (_label, ui_price) = get_label_and_ui_price(v);
+                                        let _ = item.set_text(ui_price);
                                     }
                                 }
                             }

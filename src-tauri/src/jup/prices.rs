@@ -165,7 +165,7 @@ impl PriceFetcher {
                                 token: token.clone(),
                                 price_info: PriceInfo {
                                     price: Some(*price),
-                                    formatted_price: format_price(*price),
+                                    ui_price: format_price(*price),
                                     updated_at: get_unix_timestamp(),
                                 },
                             }),
@@ -191,7 +191,7 @@ impl PriceFetcher {
                         token_b: token_b.clone(),
                         price_info: PriceInfo {
                             price: Some(price),
-                            formatted_price: format_price(price),
+                            ui_price: format_price(price),
                             updated_at: get_unix_timestamp(),
                         },
                     }),

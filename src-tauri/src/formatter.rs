@@ -1,6 +1,6 @@
 use crate::feeder::{PairPriceInfo, PerpValueInfo, TokenOrPairPriceInfo, TokenPriceInfo};
 
-pub fn update_price_display(price_info: &TokenOrPairPriceInfo) -> (String, String) {
+pub fn get_label_and_ui_price(price_info: &TokenOrPairPriceInfo) -> (String, String) {
     match price_info {
         TokenOrPairPriceInfo::Pair(PairPriceInfo {
             token_a,
@@ -8,19 +8,19 @@ pub fn update_price_display(price_info: &TokenOrPairPriceInfo) -> (String, Strin
             price_info,
         }) => {
             let label = format!("{}/{}", token_a.symbol, token_b.symbol);
-            let formatted_price = price_info
+            let ui_price = price_info
                 .price
                 .map(format_price)
                 .unwrap_or("…".to_string());
-            (label, formatted_price)
+            (label, ui_price)
         }
         TokenOrPairPriceInfo::Token(TokenPriceInfo { token, price_info }) => {
             let label = token.symbol.to_string();
-            let formatted_price = price_info
+            let ui_price = price_info
                 .price
                 .map(format_price_with_dollar)
                 .unwrap_or("…".to_string());
-            (label, formatted_price)
+            (label, ui_price)
         }
         TokenOrPairPriceInfo::Perp(PerpValueInfo {
             id: _,
@@ -28,11 +28,11 @@ pub fn update_price_display(price_info: &TokenOrPairPriceInfo) -> (String, Strin
             pnl_after_fees_usd,
         }) => {
             let label = format!("{}🄿", token.symbol);
-            let formatted_price = pnl_after_fees_usd
+            let ui_price = pnl_after_fees_usd
                 .price
                 .map(format_price_with_signed_dollar)
                 .unwrap_or("…".to_string());
-            (label, formatted_price)
+            (label, ui_price)
         }
     }
 }
