@@ -20,10 +20,6 @@ pub fn update_token_and_price(
     selected_tokens: Vec<Token>,
     price_sender: &watch::Sender<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>>,
 ) -> anyhow::Result<()> {
-    // Update selected token
-    let state = app_handle.state::<AppState>();
-    *state.selected_tokens.lock().unwrap() = selected_tokens.clone();
-
     // Update tray icon and title
     let is_pair = selected_tokens.len() == 2;
     let icon_path = if !is_pair {
@@ -37,6 +33,7 @@ pub fn update_token_and_price(
     };
 
     let selected_token_or_pair_address = get_pair_ot_token_address_from_tokens(&selected_tokens)?;
+    let state = app_handle.state::<AppState>();
     *state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
         address: selected_token_or_pair_address.clone(),
     };

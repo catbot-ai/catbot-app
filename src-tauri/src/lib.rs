@@ -48,7 +48,6 @@ pub struct SelectedTokenOrPair {
 pub struct AppState {
     tray_id: Mutex<Option<TrayIconId>>,
     tray_menu: Mutex<Option<Menu<tauri::Wry>>>,
-    selected_tokens: Mutex<Vec<Token>>,
     selected_token_or_pair_address: Mutex<SelectedTokenOrPair>,
     token_sender: Mutex<Option<watch::Sender<Vec<Token>>>>,
     token_registry: Mutex<TokenRegistry>,
@@ -171,7 +170,6 @@ pub fn run() {
                 .get_by_symbol(&TokenSymbol::SOL)
                 .expect("Invalid token")
                 .clone();
-            *app_state.selected_tokens.lock().unwrap() = vec![selected_token.clone()];
 
             let binding = selected_token.clone().address.clone();
             let address = binding.as_str();
