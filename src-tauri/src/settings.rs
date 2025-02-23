@@ -15,7 +15,7 @@ pub struct Settings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-struct Wallet {
+pub struct Wallet {
     pub name: String,
     pub public_key: String,
 }
