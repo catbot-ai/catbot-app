@@ -146,12 +146,10 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .manage(AppState::default())
         .setup(|app| {
-            // allowed the given directory
             let scope = app.try_fs_scope().expect("Invalid scope.");
             scope.allow_directory("./", false)?;
             dbg!(scope.is_allowed("./"));
 
-            // Load settings
             let app_handle = app.app_handle();
             initialize_settings(app_handle.clone());
 
@@ -163,29 +161,26 @@ pub fn run() {
             *app_state.tray_id.lock().unwrap() = Some(tray_id.clone());
             *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
 
-            // Get recent token symbol from settings.recent_token_id instead of default to TokenSymbol::SOL
-            let (token_sender, mut token_receiver) = watch::channel({
-                let app_handle = app.handle();
-                match load_settings(app_handle.clone()) {
-                    Ok(settings) => token_registry
-                        .get_tokens_from_pair_address(
-                            &settings
-                                .recent_token_id
-                                .unwrap_or(TokenSymbol::SOL.to_string()),
-                        )
-                        .unwrap_or(
-                            token_registry
-                                .get_by_symbol(&TokenSymbol::SOL)
-                                .map(|token| vec![token.clone()])
-                                .unwrap_or_default(),
-                        )
-                        .clone(),
-                    Err(_) => vec![token_registry
-                        .get_by_symbol(&TokenSymbol::SOL)
-                        .cloned()
-                        .unwrap_or_default()],
-                }
-            });
+            // Load settings once and reuse
+            let settings_result = load_settings(app_handle.clone());
+            let default_token = token_registry
+                .get_by_symbol(&TokenSymbol::SOL)
+                .cloned()
+                .unwrap_or_default();
+
+            let tokens = match &settings_result {
+                Ok(settings) => token_registry
+                    .get_tokens_from_pair_address(
+                        &settings
+                            .recent_token_id
+                            .clone()
+                            .unwrap_or(TokenSymbol::SOL.to_string()),
+                    )
+                    .unwrap_or(vec![default_token.clone()]),
+                Err(_) => vec![default_token.clone()],
+            };
+
+            let (token_sender, mut token_receiver) = watch::channel(tokens.clone());
             *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
             let (price_sender, mut price_receiver) = watch::channel::<
@@ -194,17 +189,8 @@ pub fn run() {
             *app_state.price_sender.lock().unwrap() = Some(price_sender.clone());
 
             let app_handle = app.handle().clone();
-
-            // Default to SOL
-            let selected_token = token_registry
-                .get_by_symbol(&TokenSymbol::SOL)
-                .expect("Invalid token")
-                .clone();
-
-            let binding = selected_token.clone().address.clone();
-            let address = binding.as_str();
             *app_state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
-                address: address.to_string(),
+                address: tokens[0].address.clone(),
             };
 
             let tray_menu = app_state
@@ -216,7 +202,6 @@ pub fn run() {
 
             let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
 
-            // Token effect
             tauri::async_runtime::spawn(async move {
                 let _ = token_receiver.changed().await;
                 let selected_tokens = token_receiver.borrow_and_update().clone();
