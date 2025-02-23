@@ -73,7 +73,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .manage(AppState::default())
         .setup(setup::setup)
-        .on_menu_event(&menu_handler::handle_menu_event)
+        .on_menu_event(menu_handler::handle_menu_event)
         .invoke_handler(tauri::generate_handler![load_settings, greet])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
