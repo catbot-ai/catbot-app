@@ -65,6 +65,7 @@ use tauri::AppHandle;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Settings {
     wallets: Vec<Wallet>,
+    recent_token_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -114,6 +115,16 @@ fn initialize_settings(app: AppHandle) {
     }
 }
 
+fn update_settings(app: &AppHandle, settings: Settings) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let settings_path = data_dir.join("settings.yaml");
+    let mut file =
+        File::create(&settings_path).map_err(|e| format!("Failed to create file: {}", e))?;
+    serde_yaml::to_writer(&mut file, &settings)
+        .map_err(|e| format!("Failed to write settings: {}", e))?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::Builder::new()
@@ -152,10 +163,29 @@ pub fn run() {
             *app_state.tray_id.lock().unwrap() = Some(tray_id.clone());
             *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
 
-            let (token_sender, mut token_receiver) = watch::channel(vec![TokenRegistry::new()
-                .get_by_symbol(&TokenSymbol::SOL)
-                .expect("Token not exist")
-                .clone()]);
+            // Get recent token symbol from settings.recent_token_id instead of default to TokenSymbol::SOL
+            let (token_sender, mut token_receiver) = watch::channel({
+                let app_handle = app.handle();
+                match load_settings(app_handle.clone()) {
+                    Ok(settings) => token_registry
+                        .get_tokens_from_pair_address(
+                            &settings
+                                .recent_token_id
+                                .unwrap_or(TokenSymbol::SOL.to_string()),
+                        )
+                        .unwrap_or(
+                            token_registry
+                                .get_by_symbol(&TokenSymbol::SOL)
+                                .map(|token| vec![token.clone()])
+                                .unwrap_or_default(),
+                        )
+                        .clone(),
+                    Err(_) => vec![token_registry
+                        .get_by_symbol(&TokenSymbol::SOL)
+                        .cloned()
+                        .unwrap_or_default()],
+                }
+            });
             *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
             let (price_sender, mut price_receiver) = watch::channel::<
@@ -235,16 +265,13 @@ pub fn run() {
 
                     // Update menu
                     let items = tray_menu_clone.items().unwrap();
-                    price_info_map.iter().for_each(|(token_address, v)| {
-                        match v {
+                    price_info_map
+                        .iter()
+                        .for_each(|(token_address, v)| match v {
                             TokenOrPairPriceInfo::Perp(perp_value_info) => {
-                                if let Some(item) = items
-                                    .iter()
-                                    // TODO: Use id for single and pair
-                                    .find(|menu_item| {
-                                        menu_item.id().0.as_str() == perp_value_info.id
-                                    })
-                                {
+                                if let Some(item) = items.iter().find(|menu_item| {
+                                    menu_item.id().0.as_str() == perp_value_info.id
+                                }) {
                                     if let Some(item) = item.as_icon_menuitem() {
                                         let (_label, ui_price) = get_label_and_ui_price(v);
                                         let _ = item.set_text(ui_price);
@@ -262,24 +289,10 @@ pub fn run() {
                                     }
                                 }
                             }
-                        }
-                    });
+                        });
                 }
             });
 
-            // // Notify
-            // app.notification()
-            // .builder()
-            // .title(format!(
-            //     "{}: ${}",
-            //     price_target.token_or_pair_symbol,
-            //     format_price(price)
-            // ))
-            // // .body(format!("${}", format_price(price)))
-            // .show()
-            // .unwrap();
-
-            // TODO: Update when wallet_address changed.
             let maybe_wallet_address = app_state.current_public_key.lock().unwrap().clone();
 
             tauri::async_runtime::spawn(async move {
@@ -358,14 +371,20 @@ pub fn run() {
                     window.set_focus().unwrap();
                 }
                 _ => {
-                    let app_handle = app_handle.clone();
+                    let app_handle_clone = app_handle.clone();
                     let selected_tokens = token_registry
                         .get_tokens_from_pair_address(id)
                         .expect("Invalid id");
 
+                    // Update recent_token_id in settings
+                    if let Ok(mut settings) = load_settings(app_handle.clone()) {
+                        settings.recent_token_id = Some(id.to_string());
+                        let _ = update_settings(app_handle, settings);
+                    }
+
                     let price_sender = app_state.price_sender.lock().unwrap();
                     let price_sender = price_sender.as_ref().expect("Price sender not initialized");
-                    let _ = update_token_and_price(app_handle, selected_tokens, price_sender);
+                    let _ = update_token_and_price(app_handle_clone, selected_tokens, price_sender);
                 }
             }
         })
