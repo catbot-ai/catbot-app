@@ -116,7 +116,7 @@ impl TokenRegistry {
     }
 }
 
-pub fn get_pair_ot_token_address_from_tokens(tokens: &[Token]) -> anyhow::Result<String> {
+pub fn get_pair_or_token_address_from_tokens(tokens: &[Token]) -> anyhow::Result<String> {
     let address = if tokens.len() == 1 {
         tokens[0].address.clone()
     } else {

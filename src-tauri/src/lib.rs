@@ -25,7 +25,7 @@ use tauri::{
     menu::Menu, tray::TrayIconId, LogicalSize, Manager, RunEvent, Url, WebviewUrl,
     WebviewWindowBuilder,
 };
-use token_registry::{get_pair_ot_token_address_from_tokens, Token, TokenRegistry};
+use token_registry::{get_pair_or_token_address_from_tokens, Token, TokenRegistry};
 use tokio::sync::watch::{self};
 use tray::setup_tray;
 
@@ -207,7 +207,7 @@ pub fn run() {
                 let selected_tokens = token_receiver.borrow_and_update().clone();
 
                 let selected_token_or_pair_address_string =
-                    get_pair_ot_token_address_from_tokens(&selected_tokens)
+                    get_pair_or_token_address_from_tokens(&selected_tokens)
                         .expect("Invalid token address");
 
                 let app_state = app_handle.state::<AppState>();

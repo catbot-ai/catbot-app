@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::assets::read_local_image;
 use crate::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use crate::jup::prices::PriceFetcher;
-use crate::token_registry::{get_pair_ot_token_address_from_tokens, Token};
+use crate::token_registry::{get_pair_or_token_address_from_tokens, Token};
 use crate::{AppState, SelectedTokenOrPair};
 use log::warn;
 use tauri::Manager;
@@ -32,7 +32,7 @@ pub fn update_token_and_price(
         format!("./tokens/{}.png", pair_symbol)
     };
 
-    let selected_token_or_pair_address = get_pair_ot_token_address_from_tokens(&selected_tokens)?;
+    let selected_token_or_pair_address = get_pair_or_token_address_from_tokens(&selected_tokens)?;
     let state = app_handle.state::<AppState>();
     *state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
         address: selected_token_or_pair_address.clone(),
