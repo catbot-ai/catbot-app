@@ -25,10 +25,6 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     let app_state = app.state::<AppState>();
     *app_state.token_registry.lock().unwrap() = token_registry.clone();
 
-    let (tray_id, tray_menu) = setup_tray(app.handle()).expect("Expect tray_id");
-    *app_state.tray_id.lock().unwrap() = Some(tray_id.clone());
-    *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
-
     // Load settings once and reuse
     let settings_result = load_settings(app_handle.clone());
     let default_token = token_registry
@@ -36,18 +32,37 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         .cloned()
         .unwrap_or_default();
 
-    let tokens = match &settings_result {
-        Ok(settings) => token_registry
-            .get_tokens_from_pair_address(
-                &settings
-                    .recent_token_id
-                    .clone()
-                    .unwrap_or(TokenSymbol::SOL.to_string()),
-            )
-            .unwrap_or(vec![default_token.clone()]),
-        Err(_) => vec![default_token.clone()],
+    let (settings, tokens) = match &settings_result {
+        Ok(settings) => {
+            let tokens = token_registry
+                .get_tokens_from_pair_address(
+                    &settings
+                        .recent_token_id
+                        .clone()
+                        .unwrap_or(TokenSymbol::SOL.to_string()),
+                )
+                .unwrap_or(vec![default_token.clone()]);
+
+            (Some(settings), tokens)
+        }
+        Err(_) => (None, vec![default_token.clone()]),
     };
 
+    let recent_token_id = if let Some(settings) = settings {
+        settings
+            .recent_token_id
+            .clone()
+            .unwrap_or(default_token.address.clone())
+    } else {
+        default_token.address.clone()
+    };
+
+    // Setup tray
+    let (tray_id, tray_menu) = setup_tray(app.handle(), &recent_token_id).expect("Expect tray_id");
+    *app_state.tray_id.lock().unwrap() = Some(tray_id.clone());
+    *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
+
+    // Define sender
     let (token_sender, mut token_receiver) = watch::channel(tokens.clone());
     *app_state.token_sender.lock().unwrap() = Some(token_sender);
 
@@ -55,7 +70,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         watch::channel::<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>>(Default::default());
     *app_state.price_sender.lock().unwrap() = Some(price_sender.clone());
 
-    let app_handle = app.handle().clone();
+    let cloned_app_handle = app.handle().clone();
     *app_state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
         address: tokens[0].address.clone(),
     };
@@ -67,7 +82,9 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         .clone()
         .expect("Tray not initialized");
 
-    let tray_icon = app_handle.tray_by_id(&tray_id).expect("Tray missing");
+    let tray_icon = cloned_app_handle
+        .tray_by_id(&tray_id)
+        .expect("Tray missing");
 
     tauri::async_runtime::spawn(async move {
         let _ = token_receiver.changed().await;
@@ -76,7 +93,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         let selected_token_or_pair_address_string =
             get_pair_or_token_address_from_tokens(&selected_tokens).expect("Invalid token address");
 
-        let app_state = app_handle.state::<AppState>();
+        let app_state = cloned_app_handle.state::<AppState>();
         let mut selected_token_or_pair_address = app_state
             .selected_token_or_pair_address
             .lock()
@@ -86,8 +103,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         selected_token_or_pair_address.address = selected_token_or_pair_address_string.clone();
     });
 
-    let app_handle = app.handle();
-    let cloned_app_handle = app_handle.clone();
+    let cloned_app_handle = app.handle().clone();
 
     // Price effect
     tauri::async_runtime::spawn(async move {

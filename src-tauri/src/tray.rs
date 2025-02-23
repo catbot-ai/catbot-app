@@ -39,7 +39,10 @@ fn get_menu_pair_item(
     Ok(icon_menu_item)
 }
 
-pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<(TrayIconId, Menu<tauri::Wry>)> {
+pub fn setup_tray(
+    app_handle: &tauri::AppHandle,
+    recent_token_id: &str,
+) -> anyhow::Result<(TrayIconId, Menu<tauri::Wry>)> {
     // Portfolio
     let icon = read_local_image("../assets/jup-portfolio.png").ok();
     let portfolio_i = IconMenuItem::with_id(
@@ -155,8 +158,9 @@ pub fn setup_tray(app_handle: &tauri::AppHandle) -> anyhow::Result<(TrayIconId, 
     let tray_id = tray_icon.id().clone();
 
     // Default Icon
+    let recent_token_id = recent_token_id.to_owned();
     tauri::async_runtime::spawn(async move {
-        let icon_path = format!("./tokens/{}.png", TokenSymbol::SOL);
+        let icon_path = format!("./tokens/{}.png", recent_token_id);
         let icon = read_local_image(&icon_path).expect("Image not found");
         tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
     });
