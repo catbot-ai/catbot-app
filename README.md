@@ -30,6 +30,12 @@ dx serve --port 1420
 cargo tauri dev
 ```
 
+## Settings
+
+```
+/Users/katopz/Library/Application Support/com.catbot.app/settings.yaml
+```
+
 ## Release
 
 ```
