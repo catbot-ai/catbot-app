@@ -41,23 +41,21 @@ cargo tauri dev
 - Display current token or pair price on MacOS tray with minimal resources used.
 - Link to JUP portfolio.
 
-## TODO
+## DONE
 
 - [Settings] Create settings with `wallet_address`.
 - [Settings] Load settings with `wallet_address`.
 - [Settings] Load settings with `recent_token_or_pair`.
-- [ETL] Get `JLP/SOL` quote data on `CloudRun`.
-- [ETL] Get `JLP/USDC` quote data on `CloudRun`.
-- [ETL] Get `SOL/USDC` quote data on `CloudRun`.
-- [INDICATOR] Calculate `MACD`, `BB`, `RSI`.
 
+## TODO
+
+- [INDICATOR] Calculate `MACD`, `BB`, `RSI`.
 - [SUGGESTION] The price `JLP/SOL` will be stable at 1% range for 3 days ahead, estimated 2 `SOL` profit, consider open the pool.
 - [SUGGESTION] The price `JLP ⟢ SOL` will move 1.5% to the right, consider rebalance the pool to the right.
 - [SUGGESTION] The price `SOL +10%` will be up more than 10%, consider withdraw and long.
 - [SUGGESTION] The price `JLP` will be down, consider shot for 1 day, estimated 2 `SOL` profit.
 - [SUGGESTION] The price `JLP` will be up, consider long for 1 day, estimated 2 `SOL` profit.
 - [SUGGESTION] The price `JLP/SOL` is at the bottom, consider DCA 3 times for the next 12 hours.
-- [MENU] Update price to all token in menu when display.
 - [PRICE] Better use quoted price?
 - [MENU] Can switch price e.g. `JLP/SOL`, `SOL/JLP`.
 - [MENU] Add indicator ↗︎↗︎↗︎, ↑↓↘︎↴, ⥂⥄+−⦧⦦⟡⟢⟣⫠⫠⫟.
