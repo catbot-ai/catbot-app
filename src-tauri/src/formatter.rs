@@ -1,3 +1,5 @@
+use currency_rs::{Currency, CurrencyOpts};
+
 use crate::feeder::{PairPriceInfo, PerpValueInfo, TokenOrPairPriceInfo, TokenPriceInfo};
 
 pub fn get_label_and_ui_price(price_info: &TokenOrPairPriceInfo) -> (String, String) {
@@ -30,7 +32,7 @@ pub fn get_label_and_ui_price(price_info: &TokenOrPairPriceInfo) -> (String, Str
             let label = format!("{}🄿", token.symbol);
             let ui_price = pnl_after_fees_usd
                 .price
-                .map(format_price_with_signed_dollar)
+                .map(format_price_with_dollar)
                 .unwrap_or("…".to_string());
             (label, ui_price)
         }
@@ -47,26 +49,19 @@ pub fn format_price_result(result: anyhow::Result<f64>) -> Option<String> {
 
 /// Formats a price value into a user-friendly string.
 pub fn format_price(price: f64) -> String {
-    let price_string = price.to_string();
+    let price_string = Currency::new_string(
+        price.to_string().as_str(),
+        Some(CurrencyOpts::new().set_symbol("").set_precision(6)),
+    )
+    .unwrap()
+    .to_string();
+
     price_string[..7.min(price_string.len())].to_string()
 }
 
 pub fn format_price_with_dollar(price: f64) -> String {
     let price_string = format_price(price);
-    if price_string.starts_with("-") {
-        let abs_price_string = format_price(price.abs());
-        format!("${}", abs_price_string)
-    } else {
-        format!("${}", price_string)
-    }
-}
-
-pub fn format_price_with_signed_dollar(price: f64) -> String {
-    let price_string = format_price(price);
-    if price_string.starts_with("-") {
-        let abs_price_string = format_price(price.abs());
-        format!("-${}", abs_price_string)
-    } else {
-        format!("+${}", price_string)
-    }
+    Currency::new_string(price_string.as_str(), None)
+        .unwrap()
+        .format()
 }
