@@ -32,7 +32,7 @@ pub fn get_label_and_ui_price(price_info: &TokenOrPairPriceInfo) -> (String, Str
             let label = format!("{}🄿", token.symbol);
             let ui_price = pnl_after_fees_usd
                 .price
-                .map(format_price_with_dollar)
+                .map(format_price_with_dollar_and_sign)
                 .unwrap_or("…".to_string());
             (label, ui_price)
         }
@@ -64,4 +64,13 @@ pub fn format_price_with_dollar(price: f64) -> String {
     Currency::new_string(price_string.as_str(), None)
         .unwrap()
         .format()
+}
+
+pub fn format_price_with_dollar_and_sign(price: f64) -> String {
+    let price_string = format_price_with_dollar(price);
+    if price > 0f64 {
+        format!("+{price_string}")
+    } else {
+        price_string
+    }
 }
