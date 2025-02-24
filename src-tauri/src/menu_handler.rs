@@ -12,9 +12,8 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
 
     match id {
         "settings" => {
-            let window = app_handle.get_webview_window("main");
-
-            let window = match window {
+            let maybe_window = app_handle.get_webview_window("main");
+            let window = match maybe_window {
                 Some(window) => window,
                 None => tauri::WebviewWindowBuilder::new(
                     app_handle,
@@ -28,9 +27,8 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
             };
 
             let _ = window.set_size(LogicalSize::new(360, 600));
-
-            window.show().unwrap();
-            window.set_focus().unwrap();
+            let _ = window.show();
+            let _ = window.set_focus();
         }
         "quit" => {
             *app_handle.state::<AppState>().is_quit.lock().unwrap() = true;
@@ -44,8 +42,8 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
                 None => "https://portfolio.jup.ag/".to_owned(),
             };
 
-            let window = app_handle.get_webview_window("portfolio");
-            let window = match window {
+            let maybe_window = app_handle.get_webview_window("portfolio");
+            let window = match maybe_window {
                 Some(window) => window,
                 None => WebviewWindowBuilder::new(
                     app_handle,
@@ -57,10 +55,9 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
                 .unwrap(),
             };
 
-            let _ = window.set_size(LogicalSize::new(360, 600));
-
-            window.show().unwrap();
-            window.set_focus().unwrap();
+            let _ = window.set_size(LogicalSize::new(640, 480));
+            let _ = window.show();
+            let _ = window.set_focus();
         }
         _ => {
             let app_handle_clone = app_handle.clone();

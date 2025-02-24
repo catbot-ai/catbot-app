@@ -12,6 +12,7 @@ pub mod setup;
 pub mod time;
 pub mod token_registry;
 pub mod tray;
+pub mod tray_handler;
 
 use chrono::Local;
 use commands::core::greet;
@@ -74,6 +75,7 @@ pub fn run() {
         .manage(AppState::default())
         .setup(setup::setup)
         .on_menu_event(menu_handler::handle_menu_event)
+        .on_tray_icon_event(tray_handler::handle_tray_event)
         .invoke_handler(tauri::generate_handler![load_settings, greet])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
