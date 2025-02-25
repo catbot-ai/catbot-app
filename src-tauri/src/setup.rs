@@ -1,10 +1,13 @@
 use crate::{
-    formatter::get_label_and_ui_price,
     runner::run_loop,
     settings::{initialize_settings, load_settings},
-    token_registry::{get_pair_or_token_address_from_tokens, TokenRegistry},
     tray::setup_tray,
     AppState, SelectedTokenOrPair, TokenOrPairAddress, TokenOrPairPriceInfo, TokenSymbol,
+};
+
+use jup_sdk::{
+    formatter::get_label_and_ui_price,
+    token_registry::{get_pair_or_token_address_from_tokens, TokenRegistry},
 };
 
 use std::collections::HashMap;

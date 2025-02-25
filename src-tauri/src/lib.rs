@@ -1,30 +1,26 @@
 pub mod assets;
 pub mod commands;
-pub mod feeder;
-pub mod fetcher;
-pub mod formatter;
-pub mod jup;
 pub mod menu_handler;
-pub mod ray;
 pub mod runner;
 pub mod settings;
 pub mod setup;
 pub mod time;
-pub mod token_registry;
 pub mod tray;
 pub mod tray_handler;
 
 use chrono::Local;
 use commands::core::greet;
-use feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
-use jup::prices::TokenSymbol;
+use jup_sdk::{
+    feeder::{TokenOrPairAddress, TokenOrPairPriceInfo},
+    prices::TokenSymbol,
+    token_registry::{self, Token},
+};
 use log::LevelFilter;
 use settings::load_settings;
 use std::io::Write;
 
 use std::{collections::HashMap, sync::Mutex};
 use tauri::{Manager, RunEvent};
-use token_registry::Token;
 
 #[allow(dead_code)]
 #[derive(Clone)]

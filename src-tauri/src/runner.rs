@@ -5,11 +5,13 @@ use std::collections::HashMap;
 use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
 
-use crate::feeder::{PerpValueInfo, PriceInfo, TokenOrPairAddress, TokenOrPairPriceInfo};
-use crate::formatter::format_price;
-use crate::jup::perps::PerpsFetcher;
-use crate::jup::prices::{PriceFetcher, TokenSymbol};
-use crate::token_registry::TokenRegistry;
+use jup_sdk::{
+    feeder::{PerpValueInfo, PriceInfo, TokenOrPairAddress, TokenOrPairPriceInfo},
+    formatter::format_price,
+    perps::PerpsFetcher,
+    prices::{PriceFetcher, TokenSymbol},
+    token_registry::TokenRegistry,
+};
 
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
 

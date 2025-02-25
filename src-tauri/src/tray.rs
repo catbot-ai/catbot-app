@@ -4,7 +4,8 @@ use tauri::{
     AppHandle,
 };
 
-use crate::{assets::read_local_image, jup::prices::TokenSymbol, token_registry::TokenRegistry};
+use crate::assets::read_local_image;
+use jup_sdk::{prices::TokenSymbol, token_registry::TokenRegistry};
 
 fn get_menu_pair_item(
     app_handle: &AppHandle,

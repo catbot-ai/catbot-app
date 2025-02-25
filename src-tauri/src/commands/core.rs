@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use crate::assets::read_local_image;
-use crate::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
-use crate::jup::prices::PriceFetcher;
-use crate::token_registry::{get_pair_or_token_address_from_tokens, Token};
 use crate::{AppState, SelectedTokenOrPair};
+use jup_sdk::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
+use jup_sdk::prices::PriceFetcher;
+use jup_sdk::token_registry::{get_pair_or_token_address_from_tokens, Token};
 use log::warn;
 use tauri::Manager;
 use tokio::sync::watch;

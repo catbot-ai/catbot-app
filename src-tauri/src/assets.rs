@@ -3,8 +3,8 @@ use reqwest::Client;
 use std::io::Cursor;
 use tauri::image::Image;
 
-use crate::{jup::prices::TokenAddress, ray::get_token_logo_url_by_mint_address};
 use anyhow::{Context, Result};
+use jup_sdk::{prices::TokenAddress, ray::get_token_logo_url_by_mint_address};
 use std::fs::File;
 use std::io::BufReader;
 
