@@ -97,9 +97,7 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
         }
         _ => {
             let app_handle_clone = app_handle.clone();
-            let selected_tokens = token_registry
-                .get_tokens_from_pair_address(id)
-                .expect("Invalid id");
+            let selected_tokens = token_registry.get_tokens_from_pair_address(id);
 
             if let Ok(mut settings) = load_settings(app_handle.clone()) {
                 settings.recent_token_id = Some(id.to_string());

@@ -92,7 +92,7 @@ pub fn update_token_and_price(
         format!("./tokens/{}.png", pair_symbol)
     };
 
-    let selected_token_or_pair_address = get_pair_or_token_address_from_tokens(&selected_tokens)?;
+    let selected_token_or_pair_address = get_pair_or_token_address_from_tokens(&selected_tokens);
     let state = app_handle.state::<AppState>();
     *state.selected_token_or_pair_address.lock().unwrap() = SelectedTokenOrPair {
         address: selected_token_or_pair_address.clone(),

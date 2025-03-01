@@ -37,14 +37,12 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 
     let (settings, tokens) = match &settings_result {
         Ok(settings) => {
-            let tokens = token_registry
-                .get_tokens_from_pair_address(
-                    &settings
-                        .recent_token_id
-                        .clone()
-                        .unwrap_or(TokenSymbol::SOL.to_string()),
-                )
-                .unwrap_or(vec![default_token.clone()]);
+            let tokens = token_registry.get_tokens_from_pair_address(
+                &settings
+                    .recent_token_id
+                    .clone()
+                    .unwrap_or(default_token.address.clone()),
+            );
 
             (Some(settings), tokens)
         }
@@ -97,7 +95,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         let selected_tokens = token_receiver.borrow_and_update().clone();
 
         let selected_token_or_pair_address_string =
-            get_pair_or_token_address_from_tokens(&selected_tokens).expect("Invalid token address");
+            get_pair_or_token_address_from_tokens(&selected_tokens);
 
         let app_state = cloned_app_handle.state::<AppState>();
         let mut selected_token_or_pair_address = app_state

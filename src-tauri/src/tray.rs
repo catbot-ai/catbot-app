@@ -5,21 +5,21 @@ use tauri::{
 };
 
 use crate::assets::read_local_image;
-use jup_sdk::{prices::TokenSymbol, token_registry::TokenRegistry};
+use jup_sdk::token_registry::{TokenRegistry, TokenSymbolString};
 
 fn get_menu_pair_item(
     app_handle: &AppHandle,
     token_registry: &TokenRegistry,
-    token_a_symbol: &TokenSymbol,
-    token_b_symbol: &TokenSymbol,
+    token_a_symbol: &TokenSymbolString,
+    token_b_symbol: &TokenSymbolString,
 ) -> anyhow::Result<IconMenuItem<tauri::Wry>> {
     let pair = [
         token_registry
-            .get_by_symbol(token_a_symbol)
+            .get_by_symbol_string(token_a_symbol)
             .expect("Not exist")
             .clone(),
         token_registry
-            .get_by_symbol(token_b_symbol)
+            .get_by_symbol_string(token_b_symbol)
             .expect("Not exist")
             .clone(),
     ];
@@ -72,7 +72,7 @@ pub fn setup_tray(
     let suggest_i = MenuItem::with_id(app_handle, "suggest", "Suggest", true, None::<&str>)?;
 
     // Settings
-    let settings_i = MenuItem::with_id(app_handle, "settings", "Settings", true, None::<&str>)?;
+    let _settings_i = MenuItem::with_id(app_handle, "settings", "Settings", true, None::<&str>)?;
 
     // About
     let pkg_info = app_handle.package_info();
@@ -99,7 +99,7 @@ pub fn setup_tray(
             IconMenuItem::with_id(
                 app_handle,
                 token.address.clone(),
-                token.symbol,
+                token.symbol.clone(),
                 true,
                 icon,
                 None::<&str>,
@@ -161,13 +161,13 @@ pub fn setup_tray(
     // Clone values needed in async task before moving them
     let tray_id = tray_icon.id().clone();
 
-    // Default Icon
-    let recent_token_id = recent_token_id.to_owned();
-    tauri::async_runtime::spawn(async move {
-        let icon_path = format!("./tokens/{}.png", recent_token_id);
-        let icon = read_local_image(&icon_path).expect("Image not found");
-        tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
-    });
+    // // Default Icon
+    // let recent_token_id = recent_token_id.to_owned();
+    // tauri::async_runtime::spawn(async move {
+    //     let icon_path = format!("./tokens/{}.png", recent_token_id);
+    //     let icon = read_local_image(&icon_path).expect("Image not found");
+    //     tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
+    // });
 
     Ok((tray_id, menu))
 }
