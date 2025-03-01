@@ -8,6 +8,7 @@ use jup_sdk::prices::PriceFetcher;
 use jup_sdk::token_registry::{get_pair_or_token_address_from_tokens, Token};
 use log::{info, warn};
 use reqwest::Client;
+use std::env;
 use strum_macros::{Display, EnumString};
 use tauri::Manager;
 use tauri_plugin_notification::NotificationExt;
@@ -22,21 +23,15 @@ pub enum UserCommand {
 pub async fn get_suggestion(
     app_handle: tauri::AppHandle,
     wallet_address: String,
-    // command_sender: &watch::Sender<String>,
 ) -> anyhow::Result<()> {
-    info!("get_suggestion");
-    // let command_sender_clone = command_sender.clone();
+    dotenvy::from_filename(".env").ok();
+    let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing .env SUGGEST_API_URL");
 
     let client = Client::new();
-    let url = format!(
-        "https://catbot-cooker.foxfox.workers.dev/suggest/SOLUSDT?wallet_address={wallet_address}"
-    );
+    let url = format!("{suggest_api_url}/suggest/SOLUSDT?wallet_address={wallet_address}");
     let response = client.get(url).send().await?;
     let suggestion = serde_json::from_value::<RefinedPredictionOutput>(response.json().await?)?;
-
-    info!("suggestion:{:#?}", suggestion);
-
-    // let _ = command_sender_clone.send(suggestion.summary.suggestion.clone());
+    info!("⬇️ suggestion:{:#?}", suggestion);
 
     // Notify
     app_handle

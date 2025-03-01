@@ -33,7 +33,7 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
                 Some(UserCommand::Suggest);
 
             let app_handle_clone = app_handle.clone();
-            info!("--get_suggestion--");
+            info!("⬆️ get_suggestion");
             tauri::async_runtime::spawn(async move {
                 let _ = get_suggestion(app_handle_clone, current_public_key.clone()).await;
             });
