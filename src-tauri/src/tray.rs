@@ -69,8 +69,10 @@ pub fn setup_tray(
     // Quit
     let quit_i = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
 
+    let suggest_i = MenuItem::with_id(app_handle, "suggest", "Suggest", true, None::<&str>)?;
+
     // Settings
-    let settings_i = MenuItem::with_id(app_handle, "settings", "Setting", true, None::<&str>)?;
+    let settings_i = MenuItem::with_id(app_handle, "settings", "Settings", true, None::<&str>)?;
 
     // About
     let pkg_info = app_handle.package_info();
@@ -113,7 +115,8 @@ pub fn setup_tray(
             &PredefinedMenuItem::separator(app_handle)?,
             &sol_perps_i,
             &PredefinedMenuItem::separator(app_handle)?,
-            &settings_i,
+            &suggest_i,
+            // &settings_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,
             &PredefinedMenuItem::separator(app_handle)?,
             &quit_i,

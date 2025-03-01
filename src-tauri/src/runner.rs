@@ -65,7 +65,7 @@ pub async fn run_loop(
             None => return Ok(()),
         };
 
-        println!("Fetching positions for wallet: {:?}", wallet_address);
+        // println!("Fetching positions for wallet: {:?}", wallet_address);
         match perps_fetcher
             .fetch_positions_pnl_and_format(wallet_address)
             .await
@@ -87,7 +87,7 @@ pub async fn run_loop(
                     },
                 });
                 prices_map.insert(perps_key, value_in_usd_info);
-                info!("{:#?}", prices_map);
+                // info!("{:#?}", prices_map);
                 price_sender.send(prices_map)?;
             }
             Err(_) => {

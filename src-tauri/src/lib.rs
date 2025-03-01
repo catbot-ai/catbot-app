@@ -9,7 +9,7 @@ pub mod tray;
 pub mod tray_handler;
 
 use chrono::Local;
-use commands::core::greet;
+use commands::core::{greet, UserCommand};
 use jup_sdk::{
     feeder::{TokenOrPairAddress, TokenOrPairPriceInfo},
     prices::TokenSymbol,
@@ -47,6 +47,8 @@ pub struct AppState {
     >,
     is_quit: Mutex<bool>,
     current_public_key: Mutex<Option<String>>,
+    user_command: Mutex<Option<UserCommand>>,
+    command_sender: Mutex<Option<tokio::sync::watch::Sender<String>>>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

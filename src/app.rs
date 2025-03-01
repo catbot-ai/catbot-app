@@ -90,17 +90,8 @@ pub fn app() -> Element {
             }
         }
 
-        // A simple info footer
         footer { class: "info",
-            p { "Double-click to edit a todo" }
-            p {
-                "Created by "
-                a { href: "http://github.com/jkelleyrtp/", "jkelleyrtp" }
-            }
-            p {
-                "Part of "
-                a { href: "http://todomvc.com", "TodoMVC" }
-            }
+            p { "by @katopz" }
         }
     }
 }
@@ -125,10 +116,8 @@ fn TodoHeader(mut todos: Signal<HashMap<u32, TodoItem>>) -> Element {
 
     rsx! {
         header { class: "header",
-            h1 { "todos" }
             input {
                 class: "new-todo",
-                placeholder: "What needs to be done?",
                 value: "{draft}",
                 autofocus: "true",
                 oninput: move |evt| draft.set(evt.value()),

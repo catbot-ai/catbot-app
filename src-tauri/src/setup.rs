@@ -66,6 +66,9 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
 
     // Define sender
+    let (command_sender, mut command_receiver) = watch::channel("".to_string());
+    *app_state.command_sender.lock().unwrap() = Some(command_sender);
+
     let (token_sender, mut token_receiver) = watch::channel(tokens.clone());
     *app_state.token_sender.lock().unwrap() = Some(token_sender);
 

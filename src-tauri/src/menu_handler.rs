@@ -1,16 +1,43 @@
 use crate::{
-    commands::core::update_token_and_price,
+    commands::core::{get_suggestion, update_token_and_price, UserCommand},
     settings::{load_settings, update_settings},
     AppState,
 };
+use log::info;
 use tauri::{AppHandle, LogicalSize, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 
 pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) {
     let id = event.id.as_ref();
     let app_state = app_handle.state::<AppState>();
     let token_registry = app_state.token_registry.lock().unwrap();
-
+    info!("id:{:?}", id);
     match id {
+        "suggest" => {
+            info!("suggest");
+            // Get current wallet address.
+            let current_public_key = app_state
+                .current_public_key
+                .lock()
+                .unwrap()
+                .clone()
+                .expect("Expect wallet address");
+
+            info!("current_public_key:{}", current_public_key);
+
+            // Get signals
+            let command_sender = app_state.command_sender.lock().unwrap();
+            let command_sender = command_sender
+                .as_ref()
+                .expect("Command sender not initialized");
+            *app_handle.state::<AppState>().user_command.lock().unwrap() =
+                Some(UserCommand::Suggest);
+
+            let app_handle_clone = app_handle.clone();
+            info!("--get_suggestion--");
+            tauri::async_runtime::spawn(async move {
+                let _ = get_suggestion(app_handle_clone, current_public_key.clone()).await;
+            });
+        }
         "settings" => {
             let maybe_window = app_handle.get_webview_window("main");
             let window = match maybe_window {
@@ -67,7 +94,7 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
 
             if let Ok(mut settings) = load_settings(app_handle.clone()) {
                 settings.recent_token_id = Some(id.to_string());
-                let _ = update_settings(&app_handle, settings);
+                let _ = update_settings(app_handle, settings);
             }
 
             let price_sender = app_state.price_sender.lock().unwrap();

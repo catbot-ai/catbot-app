@@ -2,12 +2,53 @@ use std::collections::HashMap;
 
 use crate::assets::read_local_image;
 use crate::{AppState, SelectedTokenOrPair};
+use common::RefinedPredictionOutput;
 use jup_sdk::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use jup_sdk::prices::PriceFetcher;
 use jup_sdk::token_registry::{get_pair_or_token_address_from_tokens, Token};
-use log::warn;
+use log::{info, warn};
+use reqwest::Client;
+use strum_macros::{Display, EnumString};
 use tauri::Manager;
+use tauri_plugin_notification::NotificationExt;
 use tokio::sync::watch;
+
+#[derive(Debug, Eq, PartialEq, EnumString, Display)]
+pub enum UserCommand {
+    #[strum(serialize = "suggest")]
+    Suggest,
+}
+
+pub async fn get_suggestion(
+    app_handle: tauri::AppHandle,
+    wallet_address: String,
+    // command_sender: &watch::Sender<String>,
+) -> anyhow::Result<()> {
+    info!("get_suggestion");
+    // let command_sender_clone = command_sender.clone();
+
+    let client = Client::new();
+    let url = format!(
+        "https://catbot-cooker.foxfox.workers.dev/suggest/SOLUSDT?wallet_address={wallet_address}"
+    );
+    let response = client.get(url).send().await?;
+    let suggestion = serde_json::from_value::<RefinedPredictionOutput>(response.json().await?)?;
+
+    info!("suggestion:{:#?}", suggestion);
+
+    // let _ = command_sender_clone.send(suggestion.summary.suggestion.clone());
+
+    // Notify
+    app_handle
+        .notification()
+        .builder()
+        .title(suggestion.summary.title)
+        .body(suggestion.summary.suggestion)
+        .show()
+        .unwrap();
+
+    Ok(())
+}
 
 #[tauri::command]
 pub fn greet(name: &str) -> String {
