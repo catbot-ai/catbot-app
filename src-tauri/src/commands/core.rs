@@ -7,12 +7,16 @@ use jup_sdk::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use jup_sdk::prices::PriceFetcher;
 use jup_sdk::token_registry::{get_pair_or_token_address_from_tokens, Token};
 use log::{info, warn};
-use reqwest::Client;
 use std::env;
 use strum_macros::{Display, EnumString};
 use tauri::Manager;
 use tauri_plugin_notification::NotificationExt;
 use tokio::sync::watch;
+
+use reqwest::Client;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
+use reqwest_tracing::TracingMiddleware;
 
 #[derive(Debug, Eq, PartialEq, EnumString, Display)]
 pub enum UserCommand {
@@ -20,17 +24,37 @@ pub enum UserCommand {
     Suggest,
 }
 
-pub async fn get_suggestion(
-    app_handle: tauri::AppHandle,
-    wallet_address: String,
-) -> anyhow::Result<()> {
+fn build_client() -> ClientWithMiddleware {
+    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+    ClientBuilder::new(Client::new())
+        .with(TracingMiddleware::default())
+        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+        .build()
+}
+
+async fn fetch_suggestion(
+    symbol: &str,
+    wallet_address: &str,
+) -> anyhow::Result<RefinedPredictionOutput> {
     dotenvy::from_filename(".env").ok();
     let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing .env SUGGEST_API_URL");
 
-    let client = Client::new();
-    let url = format!("{suggest_api_url}/suggest/SOLUSDT?wallet_address={wallet_address}");
+    let binance_symbol_pair = format!("{symbol}USDT");
+    let client = build_client();
+    let url = format!("{suggest_api_url}/{binance_symbol_pair}?wallet_address={wallet_address}");
     let response = client.get(url).send().await?;
     let suggestion = serde_json::from_value::<RefinedPredictionOutput>(response.json().await?)?;
+
+    Ok(suggestion)
+}
+
+pub async fn get_suggestion(
+    app_handle: tauri::AppHandle,
+    wallet_address: &str,
+    symbol_pair: &str,
+) -> anyhow::Result<()> {
+    info!("⬆️ fetch_suggestion:{:#?}", symbol_pair);
+    let suggestion = fetch_suggestion(symbol_pair, wallet_address).await?;
     info!("⬇️ suggestion:{:#?}", suggestion);
 
     // Notify

@@ -3,6 +3,7 @@ use crate::{
     settings::{load_settings, update_settings},
     AppState,
 };
+use jup_sdk::{prices::TokenSymbol, token_registry::get_symbol_pair_from_tokens};
 use log::info;
 use tauri::{AppHandle, LogicalSize, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 
@@ -33,9 +34,17 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
                 Some(UserCommand::Suggest);
 
             let app_handle_clone = app_handle.clone();
-            info!("⬆️ get_suggestion");
+
+            // TODO: support other symbol
+            let symbol_pair_string = TokenSymbol::SOL.to_string();
+
             tauri::async_runtime::spawn(async move {
-                let _ = get_suggestion(app_handle_clone, current_public_key.clone()).await;
+                let _ = get_suggestion(
+                    app_handle_clone,
+                    &current_public_key.clone(),
+                    &symbol_pair_string,
+                )
+                .await;
             });
         }
         "settings" => {
