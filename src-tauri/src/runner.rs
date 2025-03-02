@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::Utc;
-use log::{info, warn};
+use log::warn;
 use std::collections::HashMap;
 use tokio::sync::watch;
 use tokio::time::{sleep, Duration};
@@ -9,7 +9,7 @@ use jup_sdk::{
     feeder::{PerpValueInfo, PriceInfo, TokenOrPairAddress, TokenOrPairPriceInfo},
     formatter::format_price,
     perps::PerpsFetcher,
-    prices::{PriceFetcher, TokenSymbol},
+    prices::{MainTokenSymbol, PriceFetcher},
     token_registry::TokenRegistry,
 };
 
@@ -34,7 +34,7 @@ pub async fn run_loop(
 
     // POC SOL Perps
     let sol_token = token_registry
-        .get_by_symbol(&TokenSymbol::SOL)
+        .get_by_symbol(&MainTokenSymbol::SOL)
         .expect("Invalid symbol");
 
     loop {

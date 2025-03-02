@@ -2,7 +2,7 @@ use crate::{
     runner::run_loop,
     settings::{initialize_settings, load_settings},
     tray::setup_tray,
-    AppState, SelectedTokenOrPair, TokenOrPairAddress, TokenOrPairPriceInfo, TokenSymbol,
+    AppState, SelectedTokenOrPair, TokenOrPairAddress, TokenOrPairPriceInfo,
 };
 
 use jup_sdk::{
@@ -30,10 +30,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 
     // Load settings once and reuse
     let settings_result = load_settings(app_handle.clone());
-    let default_token = token_registry
-        .get_by_symbol(&TokenSymbol::SOL)
-        .cloned()
-        .unwrap_or_default();
+    let default_token = TokenRegistry::default_token();
 
     let (settings, tokens) = match &settings_result {
         Ok(settings) => {

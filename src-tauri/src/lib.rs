@@ -12,7 +12,6 @@ use chrono::Local;
 use commands::core::{greet, UserCommand};
 use jup_sdk::{
     feeder::{TokenOrPairAddress, TokenOrPairPriceInfo},
-    prices::TokenSymbol,
     token_registry::{self, Token},
 };
 use log::LevelFilter;
