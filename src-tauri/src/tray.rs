@@ -5,13 +5,13 @@ use tauri::{
 };
 
 use crate::assets::read_local_image;
-use jup_sdk::token_registry::{TokenRegistry, TokenSymbolString};
+use jup_sdk::token_registry::{TokenRegistry, TokenSymbol};
 
 fn get_menu_pair_item(
     app_handle: &AppHandle,
     token_registry: &TokenRegistry,
-    token_a_symbol: &TokenSymbolString,
-    token_b_symbol: &TokenSymbolString,
+    token_a_symbol: &TokenSymbol,
+    token_b_symbol: &TokenSymbol,
 ) -> anyhow::Result<IconMenuItem<tauri::Wry>> {
     let pair = [
         token_registry
