@@ -36,13 +36,13 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
             let app_handle_clone = app_handle.clone();
 
             // TODO: support other symbol
-            let symbol_pair_string = MainTokenSymbol::SOL.to_string();
+            let token_or_pair_symbol_string = MainTokenSymbol::SOL.to_string();
 
             tauri::async_runtime::spawn(async move {
                 let _ = get_suggestion(
                     app_handle_clone,
                     &current_public_key.clone(),
-                    &symbol_pair_string,
+                    &token_or_pair_symbol_string,
                 )
                 .await;
             });

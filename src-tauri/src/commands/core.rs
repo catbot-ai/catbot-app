@@ -39,9 +39,9 @@ async fn fetch_suggestion(
     dotenvy::from_filename(".env").ok();
     let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing .env SUGGEST_API_URL");
 
-    let binance_symbol_pair = format!("{symbol}USDT");
+    let binance_pair_symbol = format!("{symbol}USDT");
     let client = build_client();
-    let url = format!("{suggest_api_url}/{binance_symbol_pair}?wallet_address={wallet_address}");
+    let url = format!("{suggest_api_url}/{binance_pair_symbol}?wallet_address={wallet_address}");
     let response = client.get(url).send().await?;
     let suggestion = serde_json::from_value::<RefinedPredictionOutput>(response.json().await?)?;
 
@@ -51,10 +51,10 @@ async fn fetch_suggestion(
 pub async fn get_suggestion(
     app_handle: tauri::AppHandle,
     wallet_address: &str,
-    symbol_pair: &str,
+    token_or_pair_symbol: &str,
 ) -> anyhow::Result<()> {
-    info!("⬆️ fetch_suggestion:{:#?}", symbol_pair);
-    let suggestion = fetch_suggestion(symbol_pair, wallet_address).await?;
+    info!("⬆️ fetch_suggestion:{:#?}", token_or_pair_symbol);
+    let suggestion = fetch_suggestion(token_or_pair_symbol, wallet_address).await?;
     info!("⬇️ suggestion:{:#?}", suggestion);
 
     // Notify
