@@ -161,13 +161,13 @@ pub fn setup_tray(
     // Clone values needed in async task before moving them
     let tray_id = tray_icon.id().clone();
 
-    // // Default Icon
-    // let recent_token_id = recent_token_id.to_owned();
-    // tauri::async_runtime::spawn(async move {
-    //     let icon_path = format!("./tokens/{}.png", recent_token_id);
-    //     let icon = read_local_image(&icon_path).expect("Image not found");
-    //     tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
-    // });
+    // Default Icon
+    let recent_token_id = recent_token_id.to_owned();
+    tauri::async_runtime::spawn(async move {
+        let icon_path = format!("./tokens/{}.png", recent_token_id);
+        let icon = read_local_image(&icon_path).expect("Image not found");
+        tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
+    });
 
     Ok((tray_id, menu))
 }
