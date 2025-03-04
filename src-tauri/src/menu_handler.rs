@@ -39,12 +39,18 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
             let token_or_pair_symbol_string = MainTokenSymbol::SOL.to_string();
 
             tauri::async_runtime::spawn(async move {
-                let _ = get_suggestion(
+                match get_suggestion(
                     app_handle_clone,
                     &current_public_key.clone(),
                     &token_or_pair_symbol_string,
                 )
-                .await;
+                .await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        info!("get_suggestion error:{:?}", e);
+                    }
+                };
             });
         }
         "settings" => {
