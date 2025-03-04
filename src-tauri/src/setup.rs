@@ -50,7 +50,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         settings
             .recent_token_id
             .clone()
-            .unwrap_or(default_token.address.clone())
+            .unwrap_or(default_token.address.to_string())
     } else {
         default_token.address.clone()
     };

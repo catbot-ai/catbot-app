@@ -5,7 +5,7 @@ use tauri::{
 };
 
 use crate::assets::read_local_image;
-use jup_sdk::token_registry::{TokenRegistry, TokenSymbol};
+use jup_sdk::token_registry::{get_tokens_from_pair_address, TokenRegistry, TokenSymbol};
 
 fn get_menu_pair_item(
     app_handle: &AppHandle,
@@ -72,7 +72,7 @@ pub fn setup_tray(
     let suggest_i = MenuItem::with_id(app_handle, "suggest", "Suggest", true, None::<&str>)?;
 
     // Settings
-    let _settings_i = MenuItem::with_id(app_handle, "settings", "Settings", true, None::<&str>)?;
+    let settings_i = MenuItem::with_id(app_handle, "settings", "Settings", true, None::<&str>)?;
 
     // About
     let pkg_info = app_handle.package_info();
@@ -92,6 +92,8 @@ pub fn setup_tray(
     // Menu
     let token_menu_items: Vec<_> = tokens
         .iter()
+        // Skip any USD
+        .filter(|token| !token.symbol.to_string().contains("USD"))
         .map(|token| {
             let icon_path = format!("./tokens/{}.png", token.symbol);
             let icon = read_local_image(&icon_path).ok();
@@ -116,7 +118,7 @@ pub fn setup_tray(
             &sol_perps_i,
             &PredefinedMenuItem::separator(app_handle)?,
             &suggest_i,
-            // &settings_i,
+            &settings_i,
             &PredefinedMenuItem::about(app_handle, None, Some(about_metadata))?,
             &PredefinedMenuItem::separator(app_handle)?,
             &quit_i,
@@ -164,8 +166,16 @@ pub fn setup_tray(
     // Default Icon
     let recent_token_id = recent_token_id.to_owned();
     tauri::async_runtime::spawn(async move {
-        let icon_path = format!("./tokens/{}.png", recent_token_id);
-        let icon = read_local_image(&icon_path).expect("Image not found");
+        let tokens = get_tokens_from_pair_address(&recent_token_id);
+        let is_pair: bool = tokens.len() == 2;
+        let icon_path = if !is_pair {
+            format!("./tokens/{}.png", tokens[0].symbol)
+        } else {
+            let pair_symbol = format!("{}_{}", tokens[0].symbol, tokens[1].symbol);
+            format!("./tokens/{}.png", pair_symbol)
+        };
+        let icon =
+            read_local_image(&icon_path).unwrap_or_else(|_| panic!("Image not found: {icon_path}"));
         tray_icon.set_icon(Some(icon)).expect("Expect tray_icon");
     });
 
