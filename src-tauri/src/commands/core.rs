@@ -57,12 +57,36 @@ pub async fn get_suggestion(
     let suggestion = fetch_suggestion(token_or_pair_symbol, wallet_address).await?;
     info!("⬇️ suggestion:{:#?}", suggestion);
 
+    let title = suggestion
+        .summary
+        .vibe
+        .unwrap_or("n/a".to_string())
+        .to_string();
+
+    let first_signal = suggestion.signals.first();
+    let signal_text = if let Some(first_signal) = first_signal {
+        format!(
+            "{}({}) ${} → ${}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}",
+            first_signal.side,
+            first_signal.confidence,
+            first_signal.entry_price,
+            first_signal.target_price,
+            first_signal.rationale
+        )
+    } else {
+        "No signal".to_string()
+    };
+    let body = format!(
+        "{}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}",
+        suggestion.summary.suggestion, signal_text
+    );
+
     // Notify
     app_handle
         .notification()
         .builder()
-        .title(suggestion.summary.title)
-        .body(suggestion.summary.suggestion)
+        .title(title)
+        .body(body)
         .show()
         .unwrap();
 

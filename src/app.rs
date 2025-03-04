@@ -123,6 +123,8 @@ fn TodoHeader(mut todos: Signal<HashMap<u32, TodoItem>>) -> Element {
                 oninput: move |evt| draft.set(evt.value()),
                 onkeydown,
             }
+
+            button { class: "suggestion", onclick: move |_| {}, "Clear completed" }
         }
     }
 }
