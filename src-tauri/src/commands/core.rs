@@ -66,7 +66,7 @@ pub async fn get_suggestion(
     let first_signal = suggestion.signals.first();
     let signal_text = if let Some(first_signal) = first_signal {
         format!(
-            "{}({}) ${} → ${}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}",
+            "{}({}) ${} → ${}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}\n",
             first_signal.side,
             first_signal.confidence,
             first_signal.entry_price,
@@ -77,8 +77,8 @@ pub async fn get_suggestion(
         "No signal".to_string()
     };
     let body = format!(
-        "{}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}",
-        suggestion.summary.suggestion, signal_text
+        "{}⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}",
+        signal_text, suggestion.summary.suggestion
     );
 
     // Notify
