@@ -74,7 +74,7 @@ pub async fn get_suggestion(
             first_signal.rationale
         )
     } else {
-        "No signal".to_string()
+        "No signal\n".to_string()
     };
     let body = format!(
         "{}⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}",
