@@ -38,10 +38,9 @@ async fn fetch_suggestion(
 ) -> anyhow::Result<RefinedPredictionOutput> {
     dotenvy::from_filename(".env").ok();
     let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing .env SUGGEST_API_URL");
-
     let binance_pair_symbol = format!("{symbol}USDT");
     let client = build_client();
-    let url = format!("{suggest_api_url}/{binance_pair_symbol}?wallet_address={wallet_address}");
+    let url = format!("{suggest_api_url}/{binance_pair_symbol}/{wallet_address}");
     let response = client.get(url).send().await?;
     let suggestion = serde_json::from_value::<RefinedPredictionOutput>(response.json().await?)?;
 
@@ -57,17 +56,13 @@ pub async fn get_suggestion(
     let suggestion = fetch_suggestion(token_or_pair_symbol, wallet_address).await?;
     info!("⬇️ suggestion:{:#?}", suggestion);
 
-    let title = suggestion
-        .summary
-        .vibe
-        .unwrap_or("n/a".to_string())
-        .to_string();
+    let title = suggestion.summary.vibe.to_string();
 
     let first_signal = suggestion.signals.first();
     let signal_text = if let Some(first_signal) = first_signal {
         format!(
             "{}({}) ${} → ${}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}\n",
-            first_signal.side,
+            first_signal.direction.to_uppercase(),
             first_signal.confidence,
             first_signal.entry_price,
             first_signal.target_price,
