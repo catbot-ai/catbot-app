@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::assets::read_local_image;
 use crate::{AppState, SelectedTokenOrPair};
-use common::RefinedPredictionOutput;
+use common::RefinedSuggestionOutput;
 use jup_sdk::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use jup_sdk::prices::PriceFetcher;
 use jup_sdk::token_registry::{get_pair_or_token_address_from_tokens, Token};
@@ -35,14 +35,14 @@ fn build_client() -> ClientWithMiddleware {
 async fn fetch_suggestion(
     symbol: &str,
     wallet_address: &str,
-) -> anyhow::Result<RefinedPredictionOutput> {
+) -> anyhow::Result<RefinedSuggestionOutput> {
     dotenvy::from_filename(".env").ok();
     let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing .env SUGGEST_API_URL");
     let binance_pair_symbol = format!("{symbol}USDT");
     let client = build_client();
     let url = format!("{suggest_api_url}/{binance_pair_symbol}/{wallet_address}");
     let response = client.get(url).send().await?;
-    let suggestion = serde_json::from_value::<RefinedPredictionOutput>(response.json().await?)?;
+    let suggestion = serde_json::from_value::<RefinedSuggestionOutput>(response.json().await?)?;
 
     Ok(suggestion)
 }
@@ -62,11 +62,11 @@ pub async fn get_suggestion(
     let signal_text = if let Some(first_signal) = first_signal {
         format!(
             "{}({}) ${} → ${}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{}\n",
-            first_signal.direction.to_uppercase(),
-            first_signal.confidence,
-            first_signal.entry_price,
-            first_signal.target_price,
-            first_signal.rationale
+            first_signal.predicted.direction.to_uppercase(),
+            first_signal.predicted.confidence,
+            first_signal.predicted.entry_price,
+            first_signal.predicted.target_price,
+            first_signal.predicted.rationale,
         )
     } else {
         "No signal\n".to_string()
