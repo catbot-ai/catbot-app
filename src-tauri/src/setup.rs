@@ -1,10 +1,11 @@
 use crate::{
-    runner::run_loop,
+    runner::{run_loop, POLL_INTERVAL},
     settings::{initialize_settings, load_settings},
     tray::setup_tray,
     AppState, SelectedTokenOrPair, TokenOrPairAddress, TokenOrPairPriceInfo,
 };
 
+use chrono::Utc;
 use jup_sdk::{
     formatter::get_label_and_ui_price,
     token_registry::{get_pair_or_token_address_from_tokens, TokenRegistry},
@@ -61,7 +62,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     *app_state.tray_menu.lock().unwrap() = Some(tray_menu.clone());
 
     // Define sender
-    let (command_sender, mut command_receiver) = watch::channel("".to_string());
+    let (command_sender, mut _command_receiver) = watch::channel("".to_string());
     *app_state.command_sender.lock().unwrap() = Some(command_sender);
 
     let (token_sender, mut token_receiver) = watch::channel(tokens.clone());
@@ -125,7 +126,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             let maybe_price_info = price_info_map.get(&selected_token_or_pair_address.address);
 
             if let Some(price_info) = maybe_price_info {
-                let (_label, ui_price) = get_label_and_ui_price(price_info);
+                let (_label, ui_price, _updated_at) = get_label_and_ui_price(price_info);
                 let _ = tray_icon.set_title(Some(ui_price));
             }
 
@@ -140,7 +141,14 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                             .find(|menu_item| menu_item.id().0.as_str() == perp_value_info.id)
                         {
                             if let Some(item) = item.as_icon_menuitem() {
-                                let (_label, ui_price) = get_label_and_ui_price(v);
+                                let (_label, mut ui_price, updated_at) = get_label_and_ui_price(v);
+                                if updated_at
+                                    < Utc::now().timestamp() as u64
+                                        - POLL_INTERVAL.as_millis() as u64
+                                {
+                                    ui_price.push('❓');
+                                };
+
                                 let _ = item.set_text(ui_price);
                             }
                         }
@@ -151,7 +159,13 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                             .find(|menu_item| menu_item.id().0.as_str() == token_address)
                         {
                             if let Some(item) = item.as_icon_menuitem() {
-                                let (_label, ui_price) = get_label_and_ui_price(v);
+                                let (_label, mut ui_price, updated_at) = get_label_and_ui_price(v);
+                                if updated_at
+                                    < Utc::now().timestamp() as u64
+                                        - POLL_INTERVAL.as_millis() as u64
+                                {
+                                    ui_price.push('❓');
+                                };
                                 let _ = item.set_text(ui_price);
                             }
                         }

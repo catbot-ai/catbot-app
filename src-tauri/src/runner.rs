@@ -13,7 +13,7 @@ use jup_sdk::{
     token_registry::TokenRegistry,
 };
 
-const POLL_INTERVAL: Duration = Duration::from_secs(5);
+pub const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 pub async fn run_loop(
     price_sender: watch::Sender<HashMap<TokenOrPairAddress, TokenOrPairPriceInfo>>,
@@ -83,7 +83,7 @@ pub async fn run_loop(
                     pnl_after_fees_usd: PriceInfo {
                         price: Some(price),
                         ui_price: format_price(price),
-                        updated_at: Utc::now().timestamp_millis() as u64,
+                        updated_at: Utc::now().timestamp() as u64,
                     },
                 });
                 prices_map.insert(perps_key, value_in_usd_info);
