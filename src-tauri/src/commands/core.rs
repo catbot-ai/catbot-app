@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::assets::read_local_image;
 use crate::{AppState, SelectedTokenOrPair};
-use common::RefinedSuggestionOutput;
+use common::RefinedTradingPredictionOutput;
 use jup_sdk::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use jup_sdk::prices::PriceFetcher;
 use jup_sdk::token_registry::{get_pair_or_token_address_from_tokens, Token};
@@ -35,14 +35,15 @@ fn build_client() -> ClientWithMiddleware {
 async fn fetch_suggestion(
     symbol: &str,
     wallet_address: &str,
-) -> anyhow::Result<RefinedSuggestionOutput> {
+) -> anyhow::Result<RefinedTradingPredictionOutput> {
     dotenvy::from_filename(".env").ok();
     let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing .env SUGGEST_API_URL");
     let binance_pair_symbol = format!("{symbol}USDT");
     let client = build_client();
     let url = format!("{suggest_api_url}/{binance_pair_symbol}/{wallet_address}");
     let response = client.get(url).send().await?;
-    let suggestion = serde_json::from_value::<RefinedSuggestionOutput>(response.json().await?)?;
+    let suggestion =
+        serde_json::from_value::<RefinedTradingPredictionOutput>(response.json().await?)?;
 
     Ok(suggestion)
 }
