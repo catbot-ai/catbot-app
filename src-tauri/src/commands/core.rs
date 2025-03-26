@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::assets::read_local_image;
 use crate::{AppState, SelectedTokenOrPair};
+use anyhow::{anyhow, bail};
 use common::RefinedTradingPrediction;
 use jup_sdk::feeder::{TokenOrPairAddress, TokenOrPairPriceInfo};
 use jup_sdk::prices::PriceFetcher;
@@ -32,7 +33,6 @@ fn build_client() -> ClientWithMiddleware {
         .build()
 }
 
-use anyhow::{anyhow, bail};
 async fn fetch_suggestion(
     symbol: &str,
     wallet_address: &str,
@@ -62,10 +62,9 @@ async fn fetch_suggestion(
 
     let raw_text = response.text().await?;
     let prediction: RefinedTradingPrediction = serde_json::from_str(&raw_text).map_err(|e| {
-        let raw_json = serde_json::to_string(&raw_text)?;
         anyhow!(
             "Failed to deserialize RefinedTradingPrediction from response: {} {}",
-            raw_json,
+            raw_text,
             e
         )
     })?;
