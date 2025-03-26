@@ -32,19 +32,45 @@ fn build_client() -> ClientWithMiddleware {
         .build()
 }
 
+use anyhow::{anyhow, bail};
 async fn fetch_suggestion(
     symbol: &str,
     wallet_address: &str,
 ) -> anyhow::Result<RefinedTradingPrediction> {
-    dotenvy::from_filename(".env").ok();
-    let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing .env SUGGEST_API_URL");
+    dotenvy::from_filename(".env").ok(); // Load .env, ignore if not found
+    let suggest_api_url = env::var("SUGGEST_API_URL").expect("Missing SUGGEST_API_URL in .env");
     let pair_symbol = format!("{symbol}_USDT");
     let client = build_client();
     let url = format!("{suggest_api_url}/{pair_symbol}/{wallet_address}");
-    let response = client.get(url).send().await?;
-    let suggestion = serde_json::from_value::<RefinedTradingPrediction>(response.json().await?)?;
 
-    Ok(suggestion)
+    let response = client.get(&url).send().await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let headers = response.headers().clone();
+        let error_body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Failed to read error body".to_string());
+        bail!(
+            "Suggestion API request failed: Status: {}, Headers: {:?}, Body: {}",
+            status,
+            headers,
+            error_body
+        );
+    }
+
+    let raw_text = response.text().await?;
+    let prediction: RefinedTradingPrediction = serde_json::from_str(&raw_text).map_err(|e| {
+        let raw_json = serde_json::to_string(&raw_text)?;
+        anyhow!(
+            "Failed to deserialize RefinedTradingPrediction from response: {} {}",
+            raw_json,
+            e
+        )
+    })?;
+
+    Ok(prediction)
 }
 
 pub async fn get_suggestion(
