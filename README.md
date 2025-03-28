@@ -56,7 +56,6 @@ cargo tauri dev
 ## TODO
 
 - [PREPS] Adjust current position.
-- [INDICATOR] Calculate `MACD`, `BB`, `RSI`.
 - [SUGGESTION] The price `JLP/SOL` will be stable at 1% range for 3 days ahead, estimated 2 `SOL` profit, consider open the pool.
 - [SUGGESTION] The price `JLP ⟢ SOL` will move 1.5% to the right, consider rebalance the pool to the right.
 - [SUGGESTION] The price `SOL +10%` will be up more than 10%, consider withdraw and long.
