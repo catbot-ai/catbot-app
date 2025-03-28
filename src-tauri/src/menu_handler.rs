@@ -27,7 +27,7 @@ pub fn handle_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) 
 
             // Get signals
             let command_sender = app_state.command_sender.lock().unwrap();
-            let command_sender = command_sender
+            let _command_sender = command_sender
                 .as_ref()
                 .expect("Command sender not initialized");
             *app_handle.state::<AppState>().user_command.lock().unwrap() =
