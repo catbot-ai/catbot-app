@@ -792,6 +792,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "chrono-tz",
+ "futures",
  "jup-sdk",
  "m4rs",
  "reqwest",

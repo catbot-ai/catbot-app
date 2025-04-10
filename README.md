@@ -55,6 +55,29 @@ cargo tauri dev
 
 ## TODO
 
+- [LLM] Get ta historicals.
+- [JUDGE] Get `USDC` funds from specific address.
+- [JUDGE] Get all prices data then record.
+- [JUDGE] Get all positions data then record.
+- [JUDGE] Get all analysis data then record.
+- [JUDGE] Get all graph data then record.
+- [JUDGE] Get all previously trade decision.
+- [JUDGE] Get all llm text signals then record.
+- [JUDGE] Can process above text+image prompt.
+- [JUDGE] Can response as fn callings and summary then record.
+- [JUDGE] Can call rebalance fn then record.
+- [JUDGE] The positions can be close by reach the trigger value or `close` action by ai.
+- [EVAL] Can get the record and change the prompt if need then record reason with prompt hash as revision id.
+- [JUDGE] Follow up stop lost prompt.
+- [TEST] Follow up stop lost prompt.
+- [JUDGE] Passsive handbreak prompt.
+- [TEST] Passsive handbreak prompt.
+- [TOOLS] Find similar pattern graph.
+- [JUDGE] Use no thinking vs thinking.
+- [WEB] Perf graph.
+- [WEB] Leaderboard with today perf graph.
+- [WEB] Leaderboard with $100 for download the all trade result.
+
 - [PREPS] Adjust current position.
 - [SUGGESTION] The price `JLP/SOL` will be stable at 1% range for 3 days ahead, estimated 2 `SOL` profit, consider open the pool.
 - [SUGGESTION] The price `JLP ⟢ SOL` will move 1.5% to the right, consider rebalance the pool to the right.
